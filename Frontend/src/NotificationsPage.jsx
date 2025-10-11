@@ -1,0 +1,648 @@
+// NotificationsPage.jsx
+import React, { useState, useMemo } from "react";
+
+// Sample data for testing
+const sampleNotifications = [
+  {
+    id: 1,
+    studentName: "Alice Johnson",
+    studentAvatar: "AJ",
+    subject: "Mathematics",
+    message: "Hi! I'm struggling with calculus derivatives. Could you help me understand the chain rule better?",
+    timestamp: "2 hours ago",
+    status: "pending"
+  },
+  {
+    id: 2,
+    studentName: "Bob Smith",
+    studentAvatar: "BS",
+    subject: "Physics",
+    message: "I need help with Newton's laws of motion for my upcoming exam.",
+    timestamp: "5 hours ago",
+    status: "pending"
+  },
+  {
+    id: 3,
+    studentName: "Carol Williams",
+    studentAvatar: "CW",
+    subject: "Chemistry",
+    message: "Can you explain organic chemistry reactions? I'm having trouble with synthesis.",
+    timestamp: "1 day ago",
+    status: "accepted"
+  },
+  {
+    id: 4,
+    studentName: "David Brown",
+    studentAvatar: "DB",
+    subject: "Mathematics",
+    message: "Need help with linear algebra and matrix operations.",
+    timestamp: "2 days ago",
+    status: "rejected"
+  },
+  {
+    id: 5,
+    studentName: "Emma Davis",
+    studentAvatar: "ED",
+    subject: "Computer Science",
+    message: "Looking for guidance on data structures, particularly binary trees.",
+    timestamp: "3 days ago",
+    status: "pending"
+  },
+  {
+    id: 6,
+    studentName: "Frank Miller",
+    studentAvatar: "FM",
+    subject: "Physics",
+    message: "I need help understanding quantum mechanics basics.",
+    timestamp: "4 days ago",
+    status: "accepted"
+  },
+  {
+    id: 7,
+    studentName: "Grace Lee",
+    studentAvatar: "GL",
+    subject: "Biology",
+    message: "Can you help me with cellular biology and mitosis?",
+    timestamp: "5 days ago",
+    status: "pending"
+  },
+  {
+    id: 8,
+    studentName: "Henry Wilson",
+    studentAvatar: "HW",
+    subject: "Chemistry",
+    message: "Need assistance with chemical equilibrium concepts.",
+    timestamp: "1 week ago",
+    status: "accepted"
+  },
+  {
+    id: 9,
+    studentName: "Ivy Martinez",
+    studentAvatar: "IM",
+    subject: "Computer Science",
+    message: "Help needed with algorithm complexity and Big O notation.",
+    timestamp: "1 week ago",
+    status: "rejected"
+  },
+  {
+    id: 10,
+    studentName: "Jack Taylor",
+    studentAvatar: "JT",
+    subject: "Mathematics",
+    message: "Struggling with statistics and probability distributions.",
+    timestamp: "2 weeks ago",
+    status: "pending"
+  }
+];
+
+// Demo wrapper component
+function Demo() {
+  const [notificationsList, setNotificationsList] = useState(sampleNotifications);
+  
+  const handleAccept = (id) => {
+    setNotificationsList(prev => 
+      prev.map(n => n.id === id ? { ...n, status: 'accepted' } : n)
+    );
+  };
+  
+  const handleReject = (id) => {
+    setNotificationsList(prev => 
+      prev.map(n => n.id === id ? { ...n, status: 'rejected' } : n)
+    );
+  };
+  
+  return (
+    <NotificationsPage 
+      notifications={notificationsList}
+      onAccept={handleAccept}
+      onReject={handleReject}
+    />
+  );
+}
+
+function NotificationsPage({ notifications = [], onAccept = () => {}, onReject = () => {} }) {
+  const [filter, setFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [subjectFilter, setSubjectFilter] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
+  
+  // Get unique subjects for filter
+  const uniqueSubjects = useMemo(() => {
+    const subjects = [...new Set(notifications.map(n => n.subject))];
+    return subjects;
+  }, [notifications]);
+  
+  // Filter notifications
+  const filteredNotifications = useMemo(() => {
+    return notifications.filter(notification => {
+      const matchesStatus = filter === "all" || notification.status === filter;
+      const matchesSearch = notification.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           notification.message.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSubject = subjectFilter === "all" || notification.subject === subjectFilter;
+      
+      return matchesStatus && matchesSearch && matchesSubject;
+    });
+  }, [notifications, filter, searchQuery, subjectFilter]);
+  
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredNotifications.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentNotifications = filteredNotifications.slice(startIndex, endIndex);
+  
+  // Reset to page 1 when filters change
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [filter, searchQuery, subjectFilter]);
+  
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "pending": return "#f39c12";
+      case "accepted": return "#27ae60";
+      case "rejected": return "#e74c3c";
+      default: return "#95a5a6";
+    }
+  };
+  
+  const getStatusText = (status) => {
+    switch (status) {
+      case "pending": return "Pending Review";
+      case "accepted": return "Accepted";
+      case "rejected": return "Rejected";
+      default: return "Unknown";
+    }
+  };
+  
+  const pendingCount = notifications.filter(n => n.status === "pending").length;
+  
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  
+  return (
+    <main style={{
+      maxWidth: '1200px',
+      margin: '0 auto',
+      padding: '2rem'
+    }}>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '2rem',
+        flexWrap: 'wrap',
+        gap: '1rem'
+      }}>
+        <h1 style={{
+          fontSize: '2.5rem',
+          fontWeight: 'bold',
+          color: '#2c3e50',
+          margin: 0
+        }}>
+          Mentoring Requests
+        </h1>
+        
+        {/* Status Filter Tabs */}
+        <div style={{
+          display: 'flex',
+          background: '#f8f9fa',
+          borderRadius: '12px',
+          padding: '0.5rem',
+          gap: '0.5rem',
+          flexWrap: 'wrap'
+        }}>
+          {['all', 'pending', 'accepted', 'rejected'].map(status => (
+            <button
+              key={status}
+              onClick={() => setFilter(status)}
+              style={{
+                padding: '0.75rem 1.5rem',
+                background: filter === status ? '#667eea' : 'transparent',
+                color: filter === status ? 'white' : '#6c757d',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: '500',
+                textTransform: 'capitalize',
+                transition: 'all 0.3s ease'
+              }}
+            >
+              {status} {status === 'pending' && pendingCount > 0 && `(${pendingCount})`}
+            </button>
+          ))}
+        </div>
+      </div>
+      
+      {/* Search and Filters */}
+      <div style={{
+        display: 'flex',
+        gap: '1rem',
+        marginBottom: '2rem',
+        flexWrap: 'wrap'
+      }}>
+        {/* Search Bar */}
+        <div style={{ flex: '1', minWidth: '250px' }}>
+          <input
+            type="text"
+            placeholder="Search by student name or message..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '0.75rem 1rem',
+              border: '2px solid #e9ecef',
+              borderRadius: '8px',
+              fontSize: '0.95rem',
+              outline: 'none',
+              transition: 'border-color 0.3s ease'
+            }}
+            onFocus={(e) => e.target.style.borderColor = '#667eea'}
+            onBlur={(e) => e.target.style.borderColor = '#e9ecef'}
+          />
+        </div>
+        
+        {/* Subject Filter */}
+        <div style={{ minWidth: '200px' }}>
+          <select
+            value={subjectFilter}
+            onChange={(e) => setSubjectFilter(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '0.75rem 1rem',
+              border: '2px solid #e9ecef',
+              borderRadius: '8px',
+              fontSize: '0.95rem',
+              cursor: 'pointer',
+              outline: 'none',
+              background: 'white'
+            }}
+          >
+            <option value="all">All Subjects</option>
+            {uniqueSubjects.map(subject => (
+              <option key={subject} value={subject}>{subject}</option>
+            ))}
+          </select>
+        </div>
+        
+        {/* Items per page */}
+        <div style={{ minWidth: '150px' }}>
+          <select
+            value={itemsPerPage}
+            onChange={(e) => setItemsPerPage(Number(e.target.value))}
+            style={{
+              width: '100%',
+              padding: '0.75rem 1rem',
+              border: '2px solid #e9ecef',
+              borderRadius: '8px',
+              fontSize: '0.95rem',
+              cursor: 'pointer',
+              outline: 'none',
+              background: 'white'
+            }}
+          >
+            <option value={5}>5 per page</option>
+            <option value={10}>10 per page</option>
+            <option value={20}>20 per page</option>
+            <option value={50}>50 per page</option>
+          </select>
+        </div>
+      </div>
+      
+      {/* Results Summary */}
+      <div style={{
+        marginBottom: '1rem',
+        color: '#6c757d',
+        fontSize: '0.9rem'
+      }}>
+        Showing {currentNotifications.length > 0 ? startIndex + 1 : 0} - {Math.min(endIndex, filteredNotifications.length)} of {filteredNotifications.length} results
+      </div>
+      
+      {/* Notifications List */}
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '1.5rem',
+        marginBottom: '2rem'
+      }}>
+        {currentNotifications.length === 0 ? (
+          <div style={{
+            textAlign: 'center',
+            padding: '3rem',
+            color: '#6c757d',
+            fontSize: '1.1rem'
+          }}>
+            <div style={{ fontSize: '3rem', marginBottom: '1rem', opacity: 0.5 }}>💬</div>
+            <p>No {filter === 'all' ? '' : filter} notifications found</p>
+            {(searchQuery || subjectFilter !== 'all') && (
+              <button
+                onClick={() => {
+                  setSearchQuery('');
+                  setSubjectFilter('all');
+                }}
+                style={{
+                  marginTop: '1rem',
+                  padding: '0.5rem 1rem',
+                  background: '#667eea',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer'
+                }}
+              >
+                Clear Filters
+              </button>
+            )}
+          </div>
+        ) : (
+          currentNotifications.map(notification => (
+            <div
+              key={notification.id}
+              style={{
+                background: 'white',
+                borderRadius: '16px',
+                padding: '2rem',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                border: '1px solid #e9ecef',
+                transition: 'transform 0.2s ease, box-shadow 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.12)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.08)';
+              }}
+            >
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'flex-start',
+                marginBottom: '1.5rem',
+                flexWrap: 'wrap',
+                gap: '1rem'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <div style={{
+                    width: '60px',
+                    height: '60px',
+                    background: 'linear-gradient(135deg, #667eea, #764ba2)',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontWeight: 'bold',
+                    fontSize: '1.2rem'
+                  }}>
+                    {notification.studentAvatar}
+                  </div>
+                  
+                  <div>
+                    <h3 style={{
+                      margin: 0,
+                      fontSize: '1.3rem',
+                      fontWeight: '600',
+                      color: '#2c3e50'
+                    }}>
+                      {notification.studentName}
+                    </h3>
+                    <p style={{
+                      margin: '0.25rem 0 0 0',
+                      color: '#6c757d',
+                      fontSize: '0.9rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem'
+                    }}>
+                      <span style={{ fontSize: '0.8rem' }}>🕒</span>
+                      {notification.timestamp}
+                    </p>
+                  </div>
+                </div>
+                
+                <div style={{
+                  padding: '0.5rem 1rem',
+                  background: getStatusColor(notification.status) + '20',
+                  color: getStatusColor(notification.status),
+                  borderRadius: '25px',
+                  fontSize: '0.8rem',
+                  fontWeight: '600',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}>
+                  {notification.status === 'pending' && <span>🕒</span>}
+                  {notification.status === 'accepted' && <span>✅</span>}
+                  {notification.status === 'rejected' && <span>❌</span>}
+                  {getStatusText(notification.status)}
+                </div>
+              </div>
+              
+              <h4 style={{
+                margin: '0 0 1rem 0',
+                fontSize: '1.1rem',
+                fontWeight: '600',
+                color: '#495057'
+              }}>
+                📚 {notification.subject}
+              </h4>
+              
+              <p style={{
+                margin: '0 0 1.5rem 0',
+                color: '#6c757d',
+                lineHeight: '1.6',
+                fontSize: '0.95rem'
+              }}>
+                {notification.message}
+              </p>
+              
+              {notification.status === 'pending' && (
+                <div style={{
+                  display: 'flex',
+                  gap: '1rem',
+                  justifyContent: 'flex-end',
+                  flexWrap: 'wrap'
+                }}>
+                  <button
+                    onClick={() => onReject(notification.id)}
+                    style={{
+                      padding: '0.75rem 1.5rem',
+                      background: '#e74c3c',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontWeight: '500',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      transition: 'all 0.3s ease'
+                    }}
+                    onMouseEnter={(e) => e.target.style.background = '#c0392b'}
+                    onMouseLeave={(e) => e.target.style.background = '#e74c3c'}
+                  >
+                    <span>❌</span>
+                    Decline
+                  </button>
+                  
+                  <button
+                    onClick={() => onAccept(notification.id)}
+                    style={{
+                      padding: '0.75rem 1.5rem',
+                      background: '#27ae60',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontWeight: '500',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      transition: 'all 0.3s ease'
+                    }}
+                    onMouseEnter={(e) => e.target.style.background = '#229954'}
+                    onMouseLeave={(e) => e.target.style.background = '#27ae60'}
+                  >
+                    <span>✅</span>
+                    Accept & Schedule
+                  </button>
+                </div>
+              )}
+              
+              {notification.status === 'accepted' && (
+                <div style={{
+                  background: '#d4edda',
+                  border: '1px solid #c3e6cb',
+                  borderRadius: '8px',
+                  padding: '1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  color: '#155724'
+                }}>
+                  <span>📅</span>
+                  <span>Mentoring session scheduled. Check your messages for details.</span>
+                </div>
+              )}
+              
+              {notification.status === 'rejected' && (
+                <div style={{
+                  background: '#f8d7da',
+                  border: '1px solid #f5c6cb',
+                  borderRadius: '8px',
+                  padding: '1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  color: '#721c24'
+                }}>
+                  <span>❌</span>
+                  <span>Request declined. Student has been notified.</span>
+                </div>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+      
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          gap: '0.5rem',
+          flexWrap: 'wrap'
+        }}>
+          <button
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            style={{
+              padding: '0.5rem 1rem',
+              background: currentPage === 1 ? '#e9ecef' : '#667eea',
+              color: currentPage === 1 ? '#6c757d' : 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+              fontWeight: '500',
+              transition: 'all 0.3s ease'
+            }}
+          >
+            ← Previous
+          </button>
+          
+          {[...Array(totalPages)].map((_, index) => {
+            const page = index + 1;
+            const isCurrentPage = page === currentPage;
+            const showPage = page === 1 || 
+                            page === totalPages || 
+                            (page >= currentPage - 1 && page <= currentPage + 1);
+            
+            if (!showPage && page === currentPage - 2) {
+              return <span key={page} style={{ color: '#6c757d' }}>...</span>;
+            }
+            if (!showPage && page === currentPage + 2) {
+              return <span key={page} style={{ color: '#6c757d' }}>...</span>;
+            }
+            if (!showPage) return null;
+            
+            return (
+              <button
+                key={page}
+                onClick={() => handlePageChange(page)}
+                style={{
+                  padding: '0.5rem 1rem',
+                  background: isCurrentPage ? '#667eea' : 'white',
+                  color: isCurrentPage ? 'white' : '#495057',
+                  border: '2px solid',
+                  borderColor: isCurrentPage ? '#667eea' : '#e9ecef',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: isCurrentPage ? '600' : '500',
+                  minWidth: '40px',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={(e) => {
+                  if (!isCurrentPage) {
+                    e.target.style.borderColor = '#667eea';
+                    e.target.style.color = '#667eea';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isCurrentPage) {
+                    e.target.style.borderColor = '#e9ecef';
+                    e.target.style.color = '#495057';
+                  }
+                }}
+              >
+                {page}
+              </button>
+            );
+          })}
+          
+          <button
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            style={{
+              padding: '0.5rem 1rem',
+              background: currentPage === totalPages ? '#e9ecef' : '#667eea',
+              color: currentPage === totalPages ? '#6c757d' : 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+              fontWeight: '500',
+              transition: 'all 0.3s ease'
+            }}
+          >
+            Next →
+          </button>
+        </div>
+      )}
+    </main>
+  );
+}
+
+export default Demo;
