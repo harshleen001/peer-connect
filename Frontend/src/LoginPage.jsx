@@ -1,0 +1,364 @@
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+
+function LoginPage() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const loginStatus = localStorage.getItem("isLoggedIn");
+    if (loginStatus === "true") {
+      setIsLoggedIn(true);
+    }
+  }, []);
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+    if (email === "test@test.com" && password === "1234") {
+      alert("Login Successful ✅");
+      setIsLoggedIn(true);
+      localStorage.setItem("isLoggedIn", "true");
+      navigate("/");
+    } else {
+      alert("Invalid Credentials ❌");
+    }
+  };
+
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    localStorage.removeItem("isLoggedIn");
+    setEmail("");
+    setPassword("");
+    alert("Logged out successfully! 👋");
+    navigate("/login");
+  };
+
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+        padding: "20px",
+      }}
+    >
+      <div
+        style={{
+          background: "white",
+          padding: "48px 40px",
+          borderRadius: "24px",
+          width: "100%",
+          maxWidth: "420px",
+          textAlign: "center",
+          boxShadow: "0 20px 60px rgba(0,0,0,0.15), 0 8px 25px rgba(0,0,0,0.1)",
+          backdropFilter: "blur(10px)",
+        }}
+      >
+        {/* Header */}
+        <div style={{ marginBottom: "32px" }}>
+          <h1 style={{ 
+            margin: "0 0 8px 0", 
+            fontSize: "28px", 
+            fontWeight: "700", 
+            color: "#1a202c",
+            letterSpacing: "-0.5px"
+          }}>
+            Welcome Back! 🚀
+          </h1>
+          <p style={{
+            margin: 0,
+            color: "#64748b",
+            fontSize: "16px",
+            fontWeight: "400"
+          }}>
+            Sign in to continue to your account
+          </p>
+        </div>
+
+        {/* Demo Credentials Box */}
+        <div
+          style={{
+            background: "linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%)",
+            border: "1px solid #0ea5e9",
+            padding: "16px",
+            borderRadius: "16px",
+            marginBottom: "32px",
+            fontSize: "14px",
+            color: "#0369a1",
+            position: "relative",
+            overflow: "hidden"
+          }}
+        >
+          <div style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            height: "2px",
+            background: "linear-gradient(90deg, #0ea5e9, #06b6d4, #0ea5e9)",
+          }} />
+          <div style={{ 
+            display: "flex", 
+            alignItems: "center", 
+            justifyContent: "center",
+            gap: "8px",
+            marginBottom: "8px"
+          }}>
+            <span style={{ fontSize: "16px" }}>📝</span>
+            <strong style={{ fontSize: "15px", fontWeight: "600" }}>Demo Credentials</strong>
+          </div>
+          <div style={{ 
+            fontSize: "13px", 
+            lineHeight: "1.5",
+            fontFamily: "'JetBrains Mono', monospace"
+          }}>
+            <div><strong>Email:</strong> test@test.com</div>
+            <div><strong>Password:</strong> 1234</div>
+          </div>
+          <div style={{ 
+            fontSize: "12px", 
+            color: "#0369a1", 
+            marginTop: "4px",
+            opacity: 0.8
+          }}>
+            (or enter any email/password)
+          </div>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleLogin} style={{ textAlign: "left" }}>
+          {/* Email Field */}
+          <div style={{ marginBottom: "24px" }}>
+            <label style={{ 
+              fontSize: "14px", 
+              fontWeight: "600", 
+              display: "block", 
+              marginBottom: "8px",
+              color: "#374151"
+            }}>
+              Email
+            </label>
+            <input
+              type="email"
+              placeholder="Enter your email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              style={{
+                width: "100%",
+                padding: "14px 16px",
+                borderRadius: "12px",
+                border: "2px solid #e5e7eb",
+                outline: "none",
+                fontSize: "15px",
+                fontFamily: "inherit",
+                transition: "all 0.2s ease",
+                backgroundColor: "#fafafa",
+                boxSizing: "border-box"
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = "#667eea";
+                e.target.style.backgroundColor = "white";
+                e.target.style.boxShadow = "0 0 0 3px rgba(102, 126, 234, 0.1)";
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = "#e5e7eb";
+                e.target.style.backgroundColor = "#fafafa";
+                e.target.style.boxShadow = "none";
+              }}
+            />
+          </div>
+
+          {/* Password Field */}
+          <div style={{ marginBottom: "32px" }}>
+            <label style={{ 
+              fontSize: "14px", 
+              fontWeight: "600", 
+              display: "block", 
+              marginBottom: "8px",
+              color: "#374151"
+            }}>
+              Password
+            </label>
+            <input
+              type="password"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              style={{
+                width: "100%",
+                padding: "14px 16px",
+                borderRadius: "12px",
+                border: "2px solid #e5e7eb",
+                outline: "none",
+                fontSize: "15px",
+                fontFamily: "inherit",
+                transition: "all 0.2s ease",
+                backgroundColor: "#fafafa",
+                boxSizing: "border-box"
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = "#667eea";
+                e.target.style.backgroundColor = "white";
+                e.target.style.boxShadow = "0 0 0 3px rgba(102, 126, 234, 0.1)";
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = "#e5e7eb";
+                e.target.style.backgroundColor = "#fafafa";
+                e.target.style.boxShadow = "none";
+              }}
+            />
+          </div>
+
+          {/* Login Button */}
+          <button
+            type="submit"
+            style={{
+              width: "100%",
+              padding: "16px",
+              border: "none",
+              borderRadius: "12px",
+              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+              color: "white",
+              fontWeight: "600",
+              fontSize: "16px",
+              cursor: "pointer",
+              boxShadow: "0 4px 15px rgba(102, 126, 234, 0.3)",
+              transition: "all 0.3s ease",
+              position: "relative",
+              overflow: "hidden"
+            }}
+            onMouseOver={(e) => {
+              e.target.style.transform = "translateY(-2px)";
+              e.target.style.boxShadow = "0 8px 25px rgba(102, 126, 234, 0.4)";
+            }}
+            onMouseOut={(e) => {
+              e.target.style.transform = "translateY(0)";
+              e.target.style.boxShadow = "0 4px 15px rgba(102, 126, 234, 0.3)";
+            }}
+          >
+            Login
+          </button>
+
+          {/* ✅ ADDED - Register Button */}
+          <button
+            type="button"
+            onClick={() => navigate("/register")}
+            style={{
+              width: "100%",
+              padding: "16px",
+              border: "2px solid #667eea",
+              borderRadius: "12px",
+              background: "white",
+              color: "#667eea",
+              fontWeight: "600",
+              fontSize: "16px",
+              cursor: "pointer",
+              marginTop: "12px",
+              transition: "all 0.3s ease",
+            }}
+            onMouseOver={(e) => {
+              e.target.style.background = "#f8f9ff";
+              e.target.style.transform = "translateY(-2px)";
+              e.target.style.boxShadow = "0 4px 15px rgba(102, 126, 234, 0.15)";
+            }}
+            onMouseOut={(e) => {
+              e.target.style.background = "white";
+              e.target.style.transform = "translateY(0)";
+              e.target.style.boxShadow = "none";
+            }}
+          >
+            🎓 Register as Student
+          </button>
+
+          {/* Extra Links */}
+          <div style={{ 
+            marginTop: "24px", 
+            fontSize: "14px",
+            textAlign: "center",
+            color: "#64748b"
+          }}>
+            <a 
+              href="#" 
+              style={{ 
+                color: "#667eea", 
+                textDecoration: "none", 
+                fontWeight: "500",
+                transition: "color 0.2s ease"
+              }}
+              onMouseOver={(e) => e.target.style.color = "#5a67d8"}
+              onMouseOut={(e) => e.target.style.color = "#667eea"}
+            >
+              Forgot Password?
+            </a>
+            <span style={{ margin: "0 12px", color: "#cbd5e0" }}>|</span>
+            <a 
+              href="#" 
+              onClick={(e) => {
+                e.preventDefault();
+                navigate("/register");
+              }}
+              style={{ 
+                color: "#667eea", 
+                textDecoration: "none", 
+                fontWeight: "500",
+                transition: "color 0.2s ease"
+              }}
+              onMouseOver={(e) => e.target.style.color = "#5a67d8"}
+              onMouseOut={(e) => e.target.style.color = "#667eea"}
+            >
+              Create Account
+            </a>
+          </div>
+        </form>
+      </div>
+
+      {/* Global Logout Button */}
+      {(isLoggedIn || localStorage.getItem("isLoggedIn") === "true") && (
+        <button
+          onClick={handleLogout}
+          style={{
+            position: "fixed",
+            bottom: "24px",
+            right: "24px",
+            backgroundColor: "#ef4444",
+            color: "white",
+            border: "none",
+            borderRadius: "50px",
+            padding: "14px 24px",
+            fontSize: "14px",
+            fontWeight: "600",
+            cursor: "pointer",
+            boxShadow: "0 8px 25px rgba(239, 68, 68, 0.3)",
+            zIndex: 1000,
+            transition: "all 0.3s ease",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+          }}
+          onMouseOver={(e) => {
+            e.target.style.backgroundColor = "#dc2626";
+            e.target.style.transform = "translateY(-3px)";
+            e.target.style.boxShadow = "0 12px 35px rgba(239, 68, 68, 0.4)";
+          }}
+          onMouseOut={(e) => {
+            e.target.style.backgroundColor = "#ef4444";
+            e.target.style.transform = "translateY(0)";
+            e.target.style.boxShadow = "0 8px 25px rgba(239, 68, 68, 0.3)";
+          }}
+        >
+          <span>🚪</span>
+          Logout
+        </button>
+      )}
+    </div>
+  );
+}
+
+export default LoginPage;
