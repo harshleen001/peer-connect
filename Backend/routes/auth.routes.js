@@ -13,28 +13,74 @@ const signToken = (user) =>
   );
 
 // ✅ Register
+
+// ===============================
+// ✅ REGISTER ROUTE
+// ===============================
 router.post("/register", async (req, res) => {
   try {
-    const { name, email, password, role, year } = req.body;
+    const {
+      name,
+      email,
+      password,
+      role,
+      year,
+      branch,
+      phone,
+      address,
+      resumeLink,
+      profilePicture,
+      bio,
+      skills,
+      interests,
+      achievements,
+    } = req.body;
 
-    // check if email exists
+    // 🧩 Validation
+    if (!name || !email || !password || !year) {
+      return res.status(400).json({ message: "Please fill all required fields" });
+    }
+
+    // 🧠 Check if email exists
     const exists = await User.findOne({ email });
     if (exists) return res.status(400).json({ message: "Email already exists" });
 
-    // prevent users from self-registering as admin
-    let userRole = role;
-    if (role === "admin") {
-      userRole = "mentee"; // fallback
-    }
+    // 🧱 Prevent user from registering as admin manually
+    const finalRole = role === "admin" ? "mentee" : role || "mentee";
 
-    const user = await User.create({ name, email, password, role: userRole, year });
+    // 🧾 Create user
+    const user = await User.create({
+      name,
+      email,
+      password,
+      role: finalRole,
+      year,
+      branch,
+      phone,
+      address,
+      resumeLink,
+      profilePicture,
+      bio,
+      skills,
+      interests,
+      achievements,
+    });
 
-    res.status(201).json({ token: signToken(user), user });
+    // 🪪 Generate token
+    const token = signToken(user);
+
+    res.status(201).json({
+      message: "Registration successful",
+      token,
+      user,
+    });
   } catch (err) {
-    console.error(err);
+    console.error("❌ Registration error:", err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 });
+
+
 
 // ✅ Login
 router.post("/login", async (req, res) => {
@@ -46,12 +92,22 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    res.json({ token: signToken(user), user });
+    const token = signToken(user);
+
+    res.status(200).json({
+      message: "Login successful",
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    });
   } catch (err) {
-    console.error(err);
+    console.error("Login error:", err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 });
-
 export default router;
  

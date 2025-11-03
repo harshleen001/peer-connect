@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { api } from "./api"; // ✅ Import api.js wrapper
 
 function LoginPage() {
   const [email, setEmail] = useState("");
@@ -7,32 +8,52 @@ function LoginPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const navigate = useNavigate();
 
+  // 🔹 Redirect to login if no token on load
   useEffect(() => {
-    const loginStatus = localStorage.getItem("isLoggedIn");
-    if (loginStatus === "true") {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      localStorage.clear();
+      navigate("/login");
+    } else {
       setIsLoggedIn(true);
     }
-  }, []);
+  }, [navigate]);
 
-  const handleLogin = (e) => {
+  // 🔹 Handle login
+  const handleLogin = async (e) => {
     e.preventDefault();
-    if (email === "test@test.com" && password === "1234") {
-      alert("Login Successful ✅");
-      setIsLoggedIn(true);
+
+    try {
+      const res = await api("/auth/login", "POST", { email, password });
+
+      alert(`✅ Welcome back, ${res.user.name}!`);
+
+      // Save credentials in localStorage
+      localStorage.setItem("token", res.token);
+      localStorage.setItem("user", JSON.stringify(res.user));
       localStorage.setItem("isLoggedIn", "true");
-      navigate("/");
-    } else {
-      alert("Invalid Credentials ❌");
+      localStorage.setItem("userType", res.user.role); // mentor / mentee
+
+      // Redirect based on role
+      if (res.user.role === "mentor") {
+        navigate("/");
+      } else {
+        navigate("/");
+      }
+    } catch (err) {
+      alert("❌ Login failed: " + err.message);
     }
   };
 
+  // 🔹 Handle logout
   const handleLogout = () => {
-    setIsLoggedIn(false);
-    localStorage.removeItem("isLoggedIn");
-    setEmail("");
-    setPassword("");
-    alert("Logged out successfully! 👋");
-    navigate("/login");
+    if (window.confirm("Are you sure you want to logout?")) {
+      setIsLoggedIn(false);
+      localStorage.clear(); // ✅ Removes token, userType, user info, etc.
+      alert("Logged out successfully! 👋");
+      navigate("/login");
+    }
   };
 
   return (
@@ -61,21 +82,25 @@ function LoginPage() {
       >
         {/* Header */}
         <div style={{ marginBottom: "32px" }}>
-          <h1 style={{ 
-            margin: "0 0 8px 0", 
-            fontSize: "28px", 
-            fontWeight: "700", 
-            color: "#1a202c",
-            letterSpacing: "-0.5px"
-          }}>
+          <h1
+            style={{
+              margin: "0 0 8px 0",
+              fontSize: "28px",
+              fontWeight: "700",
+              color: "#1a202c",
+              letterSpacing: "-0.5px",
+            }}
+          >
             Welcome Back! 🚀
           </h1>
-          <p style={{
-            margin: 0,
-            color: "#64748b",
-            fontSize: "16px",
-            fontWeight: "400"
-          }}>
+          <p
+            style={{
+              margin: 0,
+              color: "#64748b",
+              fontSize: "16px",
+              fontWeight: "400",
+            }}
+          >
             Sign in to continue to your account
           </p>
         </div>
@@ -91,41 +116,53 @@ function LoginPage() {
             fontSize: "14px",
             color: "#0369a1",
             position: "relative",
-            overflow: "hidden"
+            overflow: "hidden",
           }}
         >
-          <div style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            height: "2px",
-            background: "linear-gradient(90deg, #0ea5e9, #06b6d4, #0ea5e9)",
-          }} />
-          <div style={{ 
-            display: "flex", 
-            alignItems: "center", 
-            justifyContent: "center",
-            gap: "8px",
-            marginBottom: "8px"
-          }}>
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              height: "2px",
+              background: "linear-gradient(90deg, #0ea5e9, #06b6d4, #0ea5e9)",
+            }}
+          />
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "8px",
+              marginBottom: "8px",
+            }}
+          >
             <span style={{ fontSize: "16px" }}>📝</span>
             <strong style={{ fontSize: "15px", fontWeight: "600" }}>Demo Credentials</strong>
           </div>
-          <div style={{ 
-            fontSize: "13px", 
-            lineHeight: "1.5",
-            fontFamily: "'JetBrains Mono', monospace"
-          }}>
-            <div><strong>Email:</strong> test@test.com</div>
-            <div><strong>Password:</strong> 1234</div>
+          <div
+            style={{
+              fontSize: "13px",
+              lineHeight: "1.5",
+              fontFamily: "'JetBrains Mono', monospace",
+            }}
+          >
+            <div>
+              <strong>Email:</strong> test@test.com
+            </div>
+            <div>
+              <strong>Password:</strong> 1234
+            </div>
           </div>
-          <div style={{ 
-            fontSize: "12px", 
-            color: "#0369a1", 
-            marginTop: "4px",
-            opacity: 0.8
-          }}>
+          <div
+            style={{
+              fontSize: "12px",
+              color: "#0369a1",
+              marginTop: "4px",
+              opacity: 0.8,
+            }}
+          >
             (or enter any email/password)
           </div>
         </div>
@@ -134,13 +171,15 @@ function LoginPage() {
         <form onSubmit={handleLogin} style={{ textAlign: "left" }}>
           {/* Email Field */}
           <div style={{ marginBottom: "24px" }}>
-            <label style={{ 
-              fontSize: "14px", 
-              fontWeight: "600", 
-              display: "block", 
-              marginBottom: "8px",
-              color: "#374151"
-            }}>
+            <label
+              style={{
+                fontSize: "14px",
+                fontWeight: "600",
+                display: "block",
+                marginBottom: "8px",
+                color: "#374151",
+              }}
+            >
               Email
             </label>
             <input
@@ -156,33 +195,22 @@ function LoginPage() {
                 border: "2px solid #e5e7eb",
                 outline: "none",
                 fontSize: "15px",
-                fontFamily: "inherit",
-                transition: "all 0.2s ease",
                 backgroundColor: "#fafafa",
-                boxSizing: "border-box"
-              }}
-              onFocus={(e) => {
-                e.target.style.borderColor = "#667eea";
-                e.target.style.backgroundColor = "white";
-                e.target.style.boxShadow = "0 0 0 3px rgba(102, 126, 234, 0.1)";
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = "#e5e7eb";
-                e.target.style.backgroundColor = "#fafafa";
-                e.target.style.boxShadow = "none";
               }}
             />
           </div>
 
           {/* Password Field */}
           <div style={{ marginBottom: "32px" }}>
-            <label style={{ 
-              fontSize: "14px", 
-              fontWeight: "600", 
-              display: "block", 
-              marginBottom: "8px",
-              color: "#374151"
-            }}>
+            <label
+              style={{
+                fontSize: "14px",
+                fontWeight: "600",
+                display: "block",
+                marginBottom: "8px",
+                color: "#374151",
+              }}
+            >
               Password
             </label>
             <input
@@ -198,20 +226,7 @@ function LoginPage() {
                 border: "2px solid #e5e7eb",
                 outline: "none",
                 fontSize: "15px",
-                fontFamily: "inherit",
-                transition: "all 0.2s ease",
                 backgroundColor: "#fafafa",
-                boxSizing: "border-box"
-              }}
-              onFocus={(e) => {
-                e.target.style.borderColor = "#667eea";
-                e.target.style.backgroundColor = "white";
-                e.target.style.boxShadow = "0 0 0 3px rgba(102, 126, 234, 0.1)";
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = "#e5e7eb";
-                e.target.style.backgroundColor = "#fafafa";
-                e.target.style.boxShadow = "none";
               }}
             />
           </div>
@@ -229,24 +244,12 @@ function LoginPage() {
               fontWeight: "600",
               fontSize: "16px",
               cursor: "pointer",
-              boxShadow: "0 4px 15px rgba(102, 126, 234, 0.3)",
-              transition: "all 0.3s ease",
-              position: "relative",
-              overflow: "hidden"
-            }}
-            onMouseOver={(e) => {
-              e.target.style.transform = "translateY(-2px)";
-              e.target.style.boxShadow = "0 8px 25px rgba(102, 126, 234, 0.4)";
-            }}
-            onMouseOut={(e) => {
-              e.target.style.transform = "translateY(0)";
-              e.target.style.boxShadow = "0 4px 15px rgba(102, 126, 234, 0.3)";
             }}
           >
             Login
           </button>
 
-          {/* ✅ ADDED - Register Button */}
+          {/* Register Button */}
           <button
             type="button"
             onClick={() => navigate("/register")}
@@ -261,57 +264,42 @@ function LoginPage() {
               fontSize: "16px",
               cursor: "pointer",
               marginTop: "12px",
-              transition: "all 0.3s ease",
-            }}
-            onMouseOver={(e) => {
-              e.target.style.background = "#f8f9ff";
-              e.target.style.transform = "translateY(-2px)";
-              e.target.style.boxShadow = "0 4px 15px rgba(102, 126, 234, 0.15)";
-            }}
-            onMouseOut={(e) => {
-              e.target.style.background = "white";
-              e.target.style.transform = "translateY(0)";
-              e.target.style.boxShadow = "none";
             }}
           >
             🎓 Register as Student
           </button>
 
-          {/* Extra Links */}
-          <div style={{ 
-            marginTop: "24px", 
-            fontSize: "14px",
-            textAlign: "center",
-            color: "#64748b"
-          }}>
-            <a 
-              href="#" 
-              style={{ 
-                color: "#667eea", 
-                textDecoration: "none", 
+          {/* Links */}
+          <div
+            style={{
+              marginTop: "24px",
+              fontSize: "14px",
+              textAlign: "center",
+              color: "#64748b",
+            }}
+          >
+            <a
+              href="#"
+              style={{
+                color: "#667eea",
+                textDecoration: "none",
                 fontWeight: "500",
-                transition: "color 0.2s ease"
               }}
-              onMouseOver={(e) => e.target.style.color = "#5a67d8"}
-              onMouseOut={(e) => e.target.style.color = "#667eea"}
             >
               Forgot Password?
             </a>
             <span style={{ margin: "0 12px", color: "#cbd5e0" }}>|</span>
-            <a 
-              href="#" 
+            <a
+              href="#"
               onClick={(e) => {
                 e.preventDefault();
                 navigate("/register");
               }}
-              style={{ 
-                color: "#667eea", 
-                textDecoration: "none", 
+              style={{
+                color: "#667eea",
+                textDecoration: "none",
                 fontWeight: "500",
-                transition: "color 0.2s ease"
               }}
-              onMouseOver={(e) => e.target.style.color = "#5a67d8"}
-              onMouseOut={(e) => e.target.style.color = "#667eea"}
             >
               Create Account
             </a>
@@ -337,24 +325,9 @@ function LoginPage() {
             cursor: "pointer",
             boxShadow: "0 8px 25px rgba(239, 68, 68, 0.3)",
             zIndex: 1000,
-            transition: "all 0.3s ease",
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-          }}
-          onMouseOver={(e) => {
-            e.target.style.backgroundColor = "#dc2626";
-            e.target.style.transform = "translateY(-3px)";
-            e.target.style.boxShadow = "0 12px 35px rgba(239, 68, 68, 0.4)";
-          }}
-          onMouseOut={(e) => {
-            e.target.style.backgroundColor = "#ef4444";
-            e.target.style.transform = "translateY(0)";
-            e.target.style.boxShadow = "0 8px 25px rgba(239, 68, 68, 0.3)";
           }}
         >
-          <span>🚪</span>
-          Logout
+          🚪 Logout
         </button>
       )}
     </div>

@@ -14,6 +14,10 @@ import LeaderboardPage from "./LeaderboardPage.jsx";
 import CommunityChatsPage from "./CommunityChatsPage.jsx";
 import AdminManagementPage from "./AdminManagementPage.jsx";
 import StudentRegistrationPage from "./StudentRegistrationPage.jsx"; // ✅ ADDED
+import Dashboard from "./Dashboard.jsx";
+import ProtectedRoute from "./ProtectedRoute.jsx";
+import MenteeDashboard from "./MenteeDashboard.jsx";
+import MentorDashboard from "./MentorDashboard.jsx";
 
 // ----------------- Initial Notifications -----------------
 const initialNotifications = [
@@ -215,7 +219,7 @@ function ProtectedAdminRoute({ children }) {
   useEffect(() => {
     const isAdmin = localStorage.getItem("isAdmin");
     const isLoggedIn = localStorage.getItem("isLoggedIn");
-    
+
     if (isLoggedIn !== "true") {
       alert("⚠️ Please login first!");
       navigate("/login");
@@ -391,11 +395,18 @@ function App() {
           <Route
             path="/"
             element={
-              <PageLayout notificationCount={pendingCount}>
-                <DashboardContent />
-              </PageLayout>
+              <ProtectedRoute>
+                <PageLayout notificationCount={pendingCount}>
+                  {localStorage.getItem("role") === "mentor" ? (
+                    <MentorDashboard />
+                  ) : (
+                    <MenteeDashboard />
+                  )}
+                </PageLayout>
+              </ProtectedRoute>
             }
           />
+
 
           {/* Communication */}
           <Route
@@ -439,11 +450,14 @@ function App() {
           <Route
             path="/profile"
             element={
-              <PageLayout notificationCount={pendingCount}>
-                <ProfilePage />
-              </PageLayout>
+              <ProtectedRoute>
+                <PageLayout notificationCount={pendingCount}>
+                  <ProfilePage />
+                </PageLayout>
+              </ProtectedRoute>
             }
           />
+
           <Route
             path="/leaderboard"
             element={
@@ -494,9 +508,9 @@ function App() {
             path="/settings"
             element={
               <PageLayout notificationCount={pendingCount}>
-                <SimplePage 
-                  title="Settings" 
-                  description="Configure your account preferences here." 
+                <SimplePage
+                  title="Settings"
+                  description="Configure your account preferences here."
                 />
               </PageLayout>
             }
@@ -505,9 +519,9 @@ function App() {
             path="/report-history"
             element={
               <PageLayout notificationCount={pendingCount}>
-                <SimplePage 
-                  title="Report History" 
-                  description="View your mentoring reports and history." 
+                <SimplePage
+                  title="Report History"
+                  description="View your mentoring reports and history."
                 />
               </PageLayout>
             }
@@ -516,9 +530,9 @@ function App() {
             path="/help"
             element={
               <PageLayout notificationCount={pendingCount}>
-                <SimplePage 
-                  title="Help & Support" 
-                  description="Find answers to common questions and get support." 
+                <SimplePage
+                  title="Help & Support"
+                  description="Find answers to common questions and get support."
                 />
               </PageLayout>
             }
@@ -527,9 +541,9 @@ function App() {
             path="/feedback"
             element={
               <PageLayout notificationCount={pendingCount}>
-                <SimplePage 
-                  title="Send Feedback" 
-                  description="Share your thoughts to help us improve." 
+                <SimplePage
+                  title="Send Feedback"
+                  description="Share your thoughts to help us improve."
                 />
               </PageLayout>
             }

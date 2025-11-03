@@ -38,7 +38,12 @@ const userSchema = new mongoose.Schema(
     rating: { type: Number, default: 0 },
     menteesHelped: { type: Number, default: 0 },
     verifiedMentor: { type: Boolean, default: false },
+    // inside your userSchema fields:
+    followers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    following: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+
   },
+
   { timestamps: true }
 );
 

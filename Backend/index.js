@@ -18,8 +18,12 @@ import profileRoutes from "./routes/profile.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import communityRoutes from "./routes/community.routes.js";
 import communityPostRoutes  from "./routes/communityPost.routes.js";  
-import communityReactionRoutes from "./routes/communityReaction.routes.js";
+import followRoutes from "./routes/follow.routes.js";
 
+import communityReactionRoutes from "./routes/communityReaction.routes.js";
+import path from "path";
+
+import fs from "fs";
 
 
 
@@ -33,7 +37,7 @@ app.get("/health", (_, res) => res.json({ ok: true }));
 
 app.use("/api/auth", authRoutes);
 
-app.use("/api/users", userRoutes);
+app.use("/api/user", userRoutes);
 
 app.use("/api/mentors", mentorRoutes);
 
@@ -60,6 +64,16 @@ app.use('/api/community', communityRoutes);
 app.use('/api/community-post', communityPostRoutes);
 
 app.use('/api/community-reaction', communityReactionRoutes);
+
+app.use("/api/follow", followRoutes);
+
+
+const uploadDir = path.resolve("uploads");
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
+app.use("/api/uploads", express.static(uploadDir));
+app.use(cors({ origin: process.env.CORS_ORIGIN, credentials: true }));
+app.use(express.json());
+app.use(morgan("dev"));
 
 connectDB().then(() => {
   app.listen(process.env.PORT, () =>

@@ -19,7 +19,7 @@ router.post("/:mentorId", auth(), async (req, res) => {
     const existing = await Request.findOne({
       menteeId: req.user.id,
       mentorId,
-      status: "pending",
+      status: "pending" || "accepted",
     });
 
     if (existing) {
@@ -122,6 +122,49 @@ router.get("/sent", auth(), async (req, res) => {
 
     res.json(requests);
   } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+});
+
+
+// ✅ Mentee cancels a pending request
+router.delete("/:requestId", auth(), async (req, res) => {
+  try {
+    // Ensure only mentees can cancel
+    if (req.user.role !== "mentee") {
+      return res.status(403).json({ message: "Only mentees can cancel requests" });
+    }
+
+    // Find the request
+    const request = await Request.findById(req.params.requestId);
+    if (!request) {
+      return res.status(404).json({ message: "Request not found" });
+    }
+
+    // Ensure the mentee owns the request
+    if (request.menteeId.toString() !== req.user.id) {
+      return res.status(403).json({ message: "Not authorized" });
+    }
+
+    // Ensure it’s still pending
+    if (request.status !== "pending") {
+      return res.status(400).json({ message: "Only pending requests can be cancelled" });
+    }
+
+    // Delete the request
+    await request.deleteOne();
+
+    // Optional: Notify mentor
+    await Notification.create({
+      userId: request.mentorId,
+      message: `A connection request from a mentee was cancelled.`,
+      type: "info",
+      link: `/requests`,
+    });
+
+    res.json({ message: "Request cancelled successfully" });
+  } catch (err) {
+    console.error("❌ Cancel request error:", err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 });
