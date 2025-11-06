@@ -6,6 +6,7 @@ const communityPostSchema = new mongoose.Schema({
   mentorId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   content: { type: String, required: true },
   mediaUrl: String, // optional image / file link
+  hasPoll: { type: Boolean, default: false }, // Indicates if post has a poll
 
   // ✅ reaction counters for fast access
   reactionSummary: {

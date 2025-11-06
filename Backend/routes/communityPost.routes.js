@@ -1,11 +1,24 @@
 // Backend/routes/communityPost.routes.js
 import express from "express";
 import { auth } from "../middleware/auth.js";
+import multer from "multer";
+import path from "path";
 import Community from "../models/Community.js";
 import CommunityPost from "../models/CommunityPost.js";
 import Notification from "../models/Notification.js";
+import { getReactionSummary, getReactionSummaries } from "./communityReaction.routes.js";
 
 const router = express.Router();
+
+// Basic disk storage in uploads/ (already served via /api/uploads in index.js)
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, path.resolve("uploads")),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    cb(null, `community-${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`);
+  }
+});
+const upload = multer({ storage });
 
 /**
  * Mentor creates a post in a community
@@ -54,6 +67,36 @@ router.post("/:communityId/posts", auth(), async (req, res) => {
 });
 
 /**
+ * Get a single post by ID (must come before /:communityId/posts)
+ */
+router.get("/:communityId/posts/:postId", auth(), async (req, res) => {
+  try {
+    const post = await CommunityPost.findOne({
+      _id: req.params.postId,
+      communityId: req.params.communityId
+    })
+      .populate("mentorId", "name email")
+      .populate("communityId", "name description");
+
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    // Get reaction summary using helper from communityReaction.routes.js
+    const reactionSummary = await getReactionSummary(post._id);
+
+    const postWithReactions = {
+      ...post.toObject(),
+      reactionSummary
+    };
+
+    res.json(postWithReactions);
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+});
+
+/**
  * Get all posts in a community
  */
 router.get("/:communityId/posts", auth(), async (req, res) => {
@@ -62,7 +105,66 @@ router.get("/:communityId/posts", auth(), async (req, res) => {
       .populate("mentorId", "name email")
       .sort({ createdAt: -1 });
 
-    res.json(posts);
+    // Get reaction summaries for all posts using helper from communityReaction.routes.js
+    const postIds = posts.map(post => post._id);
+    const reactionSummaries = await getReactionSummaries(postIds);
+
+    // Combine posts with their reaction summaries
+    const postsWithCounts = posts.map(post => {
+      const postObj = post.toObject();
+      const summary = reactionSummaries.get(post._id.toString()) || { heart: 0, thumbsUp: 0, fire: 0 };
+      return {
+        ...postObj,
+        reactionSummary: summary
+      };
+    });
+
+    res.json(postsWithCounts);
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+});
+
+/**
+ * Delete a post (mentor only, only their own posts)
+ */
+router.delete("/:communityId/posts/:postId", auth(), async (req, res) => {
+  try {
+    if (req.user.role !== "mentor") {
+      return res.status(403).json({ message: "Only mentors can delete posts" });
+    }
+
+    const post = await CommunityPost.findById(req.params.postId);
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    if (post.mentorId.toString() !== req.user.id) {
+      return res.status(403).json({ message: "You can only delete your own posts" });
+    }
+
+    if (post.communityId.toString() !== req.params.communityId) {
+      return res.status(400).json({ message: "Post does not belong to this community" });
+    }
+
+    await CommunityPost.findByIdAndDelete(req.params.postId);
+    res.json({ message: "Post deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+});
+
+/**
+ * Upload media for a community post (mentor only)
+ */
+router.post("/:communityId/upload", auth(), upload.single("file"), async (req, res) => {
+  try {
+    if (req.user.role !== "mentor") {
+      return res.status(403).json({ message: "Only mentors can upload" });
+    }
+    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+    const mediaUrl = `/api/uploads/${req.file.filename}`;
+    res.json({ mediaUrl });
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
   }

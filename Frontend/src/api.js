@@ -35,6 +35,85 @@ export const requestAPI = {
   removeConnection: (id, token) => api(`/connections/${id}`, "DELETE", null, token),
 };
 
+// ----------------- Mentors / Recommendations API -----------------
+export const mentorsAPI = {
+  list: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return api(`/mentors${qs ? `?${qs}` : ""}`, "GET");
+  },
+};
+
+export const recommendationsAPI = {
+  mine: () => api(`/recommendations`, "GET"), // requires auth
+};
+
+// ----------------- Reviews (Ratings) API -----------------
+export const reviewsAPI = {
+  create: ({ mentorId, rating, comment }) => api(`/reviews`, "POST", { mentorId, rating, comment }),
+  forMentor: (mentorId) => api(`/reviews/${mentorId}`, "GET"),
+  update: (id, payload) => api(`/reviews/${id}`, "PATCH", payload),
+  remove: (id) => api(`/reviews/${id}`, "DELETE"),
+};
+
+// ----------------- Communities & Feed API -----------------
+export const communitiesAPI = {
+  list: () => api(`/community`, "GET"),
+  mine: () => api(`/community/my`, "GET"),
+  trending: () => api(`/community/trending`, "GET"),
+  create: ({ name, description }) => api(`/community`, "POST", { name, description }),
+  join: (id) => api(`/community/${id}/join`, "POST"),
+  leave: (id) => api(`/community/${id}/leave`, "DELETE"),
+  delete: (id) => api(`/community/${id}`, "DELETE"),
+};
+
+export const feedAPI = {
+  my: () => api(`/community-post/feed/my`, "GET"),
+};
+
+// ----------------- Community Posts & Reactions API -----------------
+export const communityPostsAPI = {
+  list: (communityId) => api(`/community-post/${communityId}/posts`, "GET"),
+  get: (communityId, postId) => api(`/community-post/${communityId}/posts/${postId}`, "GET"),
+  create: (communityId, { content, mediaUrl }) => api(`/community-post/${communityId}/posts`, "POST", { content, mediaUrl }),
+  delete: (communityId, postId) => api(`/community-post/${communityId}/posts/${postId}`, "DELETE"),
+  upload: async (communityId, file) => {
+    const token = localStorage.getItem("token");
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch(`${API_BASE}/community-post/${communityId}/upload`, {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      body: formData,
+    });
+    if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
+    return res.json();
+  },
+};
+
+export const communityReactionsAPI = {
+  react: (postId, reaction) => api(`/community-reaction/${postId}/react`, "POST", { reaction }),
+};
+
+// ----------------- Poll API -----------------
+export const pollAPI = {
+  create: (postId, { question, options }) => api(`/poll/${postId}/create`, "POST", { question, options }),
+  vote: (postId, optionIndex) => api(`/poll/${postId}/vote`, "POST", { optionIndex }),
+  revote: (postId, optionIndex) => api(`/poll/${postId}/vote`, "PATCH", { optionIndex }),
+  get: (postId) => api(`/poll/${postId}`, "GET"),
+  delete: (postId) => api(`/poll/${postId}`, "DELETE"),
+};
+
+// ----------------- Leaderboard API -----------------
+export const leaderboardAPI = {
+  list: () => api(`/leaderboard`, "GET"),
+  getMentor: (mentorId) => api(`/leaderboard/${mentorId}`, "GET"),
+};
+
+// ----------------- Profile API -----------------
+export const profileAPI = {
+  get: (userId) => api(`/profile/${userId}`, "GET"),
+};
+
 
 
 // ----------------- Mentorship Requests API -----------------

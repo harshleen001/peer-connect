@@ -29,18 +29,22 @@ function LoginPage() {
 
       alert(`✅ Welcome back, ${res.user.name}!`);
 
-      // Save credentials in localStorage
+      // Save token and login status
       localStorage.setItem("token", res.token);
-      localStorage.setItem("user", JSON.stringify(res.user));
       localStorage.setItem("isLoggedIn", "true");
-      localStorage.setItem("userType", res.user.role); // mentor / mentee
 
-      // Redirect based on role
-      if (res.user.role === "mentor") {
-        navigate("/");
-      } else {
-        navigate("/");
-      }
+      // Fetch authoritative user info (ensures up-to-date role)
+      const me = await api("/user/me", "GET", null, res.token);
+
+      localStorage.setItem("user", JSON.stringify(me || res.user));
+      const role = ((me?.role ?? res.user.role) || "").trim().toLowerCase();
+      localStorage.setItem("role", role);
+
+      // Notify app to re-render dashboard decision immediately
+      window.dispatchEvent(new Event("auth-updated"));
+
+      // Redirect
+      navigate("/");
     } catch (err) {
       alert("❌ Login failed: " + err.message);
     }

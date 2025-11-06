@@ -12,6 +12,8 @@ import NotificationsPage from "./NotificationsPage.jsx";
 import ProfilePage from "./ProfilePage.jsx";
 import LeaderboardPage from "./LeaderboardPage.jsx";
 import CommunityChatsPage from "./CommunityChatsPage.jsx";
+import PostDetailPage from "./PostDetailPage.jsx";
+import UserProfilePage from "./UserProfilePage.jsx";
 import AdminManagementPage from "./AdminManagementPage.jsx";
 import StudentRegistrationPage from "./StudentRegistrationPage.jsx"; // ✅ ADDED
 import Dashboard from "./Dashboard.jsx";
@@ -84,10 +86,14 @@ function LogoutButton() {
     if (window.confirm("Are you sure you want to logout?")) {
       localStorage.removeItem("isLoggedIn");
       localStorage.removeItem("isAdmin");
-      localStorage.removeItem("userType");
+     
+      localStorage.removeItem("role");
+      localStorage.removeItem("user");
       localStorage.removeItem("userName");
       setIsLoggedIn(false);
       alert("Logged out successfully! 👋");
+      // notify auth change
+      window.dispatchEvent(new Event("auth-updated"));
       navigate("/login");
     }
   };
@@ -373,6 +379,7 @@ function DashboardContent() {
 // ----------------- Main App -----------------
 function App() {
   const [notifications, setNotifications] = useState(initialNotifications);
+  const [authVersion, setAuthVersion] = useState(0);
   const pendingCount = notifications.filter((n) => n.status === "pending").length;
 
   const handleAccept = (id) => {
@@ -387,6 +394,17 @@ function App() {
     );
   };
 
+  // React to auth updates (login/logout) to re-render dashboard selection immediately
+  useEffect(() => {
+    const bump = () => setAuthVersion((v) => v + 1);
+    window.addEventListener("auth-updated", bump);
+    window.addEventListener("storage", bump);
+    return () => {
+      window.removeEventListener("auth-updated", bump);
+      window.removeEventListener("storage", bump);
+    };
+  }, []);
+
   return (
     <Router>
       <div style={{ position: "relative", minHeight: "100vh" }}>
@@ -397,7 +415,11 @@ function App() {
             element={
               <ProtectedRoute>
                 <PageLayout notificationCount={pendingCount}>
-                  {localStorage.getItem("role") === "mentor" ? (
+                  {(() => {
+                    const storedUser = JSON.parse(localStorage.getItem("user") || "null");
+                    const role = (localStorage.getItem("role") || storedUser?.role || "").trim().toLowerCase();
+                    return role === "mentor";
+                  })() ? (
                     <MentorDashboard />
                   ) : (
                     <MenteeDashboard />
@@ -422,6 +444,14 @@ function App() {
             element={
               <PageLayout notificationCount={pendingCount}>
                 <CommunityChatsPage />
+              </PageLayout>
+            }
+          />
+          <Route
+            path="/community-chats/:communityId/posts/:postId"
+            element={
+              <PageLayout notificationCount={pendingCount}>
+                <PostDetailPage />
               </PageLayout>
             }
           />
@@ -457,12 +487,22 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/profile/:id"
+            element={
+              <ProtectedRoute>
+                <PageLayout notificationCount={pendingCount}>
+                  <UserProfilePage />
+                </PageLayout>
+              </ProtectedRoute>
+            }
+          />
 
           <Route
             path="/leaderboard"
             element={
               <PageLayout notificationCount={pendingCount}>
-                <LeaderboardPage mentors={mentors} />
+                <LeaderboardPage />
               </PageLayout>
             }
           />

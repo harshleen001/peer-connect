@@ -299,6 +299,12 @@ export default function ProfilePage() {
   useEffect(() => {
     if (showConnections) fetchConnections();
   }, [showConnections]);
+
+  useEffect(() => {
+    if (user) {
+      fetchConnections();
+    }
+  }, [user]);
   const handleRemoveConnection = async (id) => {
     try {
       const token = localStorage.getItem("token");
@@ -527,7 +533,7 @@ export default function ProfilePage() {
                         >
                           {connections.length}
                         </div>
-                        <div style={{ fontSize: "0.9rem", color: "#6c757d" }}>Connections</div>
+                        <div style={{ fontSize: "0.9rem", color: "#6c757d" }}>Mentors</div>
                       </div>
                     </>
                   )}

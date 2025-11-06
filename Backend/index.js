@@ -1,6 +1,7 @@
 import "dotenv/config.js";
 import express from "express";
 import cors from "cors";
+import http from "http";
 import morgan from "morgan";
 import { connectDB } from "./config/db.js";
 import authRoutes from "./routes/auth.routes.js";
@@ -19,8 +20,8 @@ import adminRoutes from "./routes/admin.routes.js";
 import communityRoutes from "./routes/community.routes.js";
 import communityPostRoutes  from "./routes/communityPost.routes.js";  
 import followRoutes from "./routes/follow.routes.js";
-
 import communityReactionRoutes from "./routes/communityReaction.routes.js";
+import pollRoutes from "./routes/poll.routes.js";
 import path from "path";
 
 import fs from "fs";
@@ -65,7 +66,14 @@ app.use('/api/community-post', communityPostRoutes);
 
 app.use('/api/community-reaction', communityReactionRoutes);
 
+app.use('/api/poll', pollRoutes);
+
 app.use("/api/follow", followRoutes);
+
+const server = http.createServer(app);
+import  { setupSocket }  from "./middleware/socket.js";
+setupSocket(server);
+
 
 
 const uploadDir = path.resolve("uploads");

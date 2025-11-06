@@ -46,7 +46,7 @@ router.get("/", async (req, res) => {
 
     const [data, total] = await Promise.all([
       User.find(q)
-        .select("name year skills achievements rating menteesHelped verifiedMentor")
+        .select("name year skills achievements rating menteesHelped verifiedMentor profilePicture")
         .sort(sortBy)
         .skip(skip)
         .limit(parseInt(limit)),

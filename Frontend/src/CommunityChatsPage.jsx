@@ -1,136 +1,9 @@
 // CommunityChatsPage.jsx
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
+import { communitiesAPI, communityPostsAPI, communityReactionsAPI, requestAPI, pollAPI } from './api';
 
-// Mock data for chat messages
-const initialMessages = {
-  'machine-learning': [
-    {
-      id: 1,
-      user: 'Harshleen Kaur',
-      avatar: 'HK',
-      message: 'Just finished implementing a neural network from scratch! The key insight was understanding backpropagation as gradient descent in parameter space. Happy to share my implementation if anyone is interested.',
-      timestamp: '2 hours ago',
-      type: 'post',
-      likes: 15,
-      replies: 3
-    },
-    {
-      id: 2,
-      user: 'Padampreet Singh',
-      avatar: 'PS',
-      message: 'For those working on computer vision projects, I highly recommend starting with transfer learning using pre-trained models like ResNet or VGG. It saves tons of training time and often gives better results.',
-      timestamp: '4 hours ago',
-      type: 'tip',
-      likes: 8,
-      replies: 1
-    },
-    {
-      id: 3,
-      user: 'Student_ML',
-      avatar: 'S1',
-      message: 'Can someone explain the difference between supervised and unsupervised learning with practical examples? I\'m having trouble understanding when to use which approach.',
-      timestamp: '6 hours ago',
-      type: 'question',
-      likes: 2,
-      replies: 5
-    },
-    {
-      id: 4,
-      user: 'Harshleen Kaur',
-      avatar: 'HK',
-      message: 'Remember that overfitting is one of the biggest challenges in ML. Always keep a validation set separate and use techniques like dropout, regularization, and early stopping.',
-      timestamp: '8 hours ago',
-      type: 'tip',
-      likes: 22,
-      replies: 7
-    }
-  ],
-  'web-development': [
-    {
-      id: 5,
-      user: 'DishavPreet Kaur',
-      avatar: 'DK',
-      message: 'Pro tip: Always validate your APIs with tools like Postman before integrating with frontend. Save yourself hours of debugging! Also, use proper HTTP status codes.',
-      timestamp: '1 hour ago',
-      type: 'tip',
-      likes: 12,
-      replies: 2
-    },
-    {
-      id: 6,
-      user: 'Manraj Singh Khehra',
-      avatar: 'MK',
-      message: 'Working on a React project and loving the new useContext hook for state management. Much cleaner than prop drilling! Here\'s a simple example of how I implemented it.',
-      timestamp: '3 hours ago',
-      type: 'post',
-      likes: 9,
-      replies: 4
-    },
-    {
-      id: 7,
-      user: 'WebDev_Student',
-      avatar: 'WS',
-      message: 'How do you handle authentication in modern web applications? JWT vs Sessions? What are the security considerations for each approach?',
-      timestamp: '5 hours ago',
-      type: 'question',
-      likes: 6,
-      replies: 8
-    },
-    {
-      id: 8,
-      user: 'DishavPreet Kaur',
-      avatar: 'DK',
-      message: 'Database indexing is crucial for performance. Make sure to index your frequently queried columns, but don\'t over-index as it slows down writes.',
-      timestamp: '7 hours ago',
-      type: 'tip',
-      likes: 18,
-      replies: 3
-    }
-  ],
-  'competitive-programming': [
-    {
-      id: 9,
-      user: 'Padampreet Singh',
-      avatar: 'PS',
-      message: 'Solved a challenging dynamic programming problem today! The trick was recognizing the overlapping subproblems pattern. Sometimes drawing the recursion tree helps visualize it.',
-      timestamp: '30 minutes ago',
-      type: 'post',
-      likes: 18,
-      replies: 6
-    },
-    {
-      id: 10,
-      user: 'Harshleen Kaur',
-      avatar: 'HK',
-      message: 'Remember: Time complexity analysis is crucial. Always think about Big O notation before implementing your solution. O(n²) might work for small inputs but will timeout on larger ones.',
-      timestamp: '2 hours ago',
-      type: 'tip',
-      likes: 14,
-      replies: 2
-    },
-    {
-      id: 11,
-      user: 'CP_Enthusiast',
-      avatar: 'CC',
-      message: 'Any tips for improving problem-solving speed in contests? I can solve problems but I\'m too slow. Need to improve my implementation speed.',
-      timestamp: '4 hours ago',
-      type: 'question',
-      likes: 7,
-      replies: 12
-    },
-    {
-      id: 12,
-      user: 'Manraj Singh Khehra',
-      avatar: 'MK',
-      message: 'Graph algorithms are super important for competitive programming. Master BFS, DFS, Dijkstra, and Floyd-Warshall. They appear in 30% of contest problems.',
-      timestamp: '6 hours ago',
-      type: 'tip',
-      likes: 25,
-      replies: 8
-    }
-  ]
-};
+// dynamic state only; messages will be loaded from backend
 
 const Avatar = ({ seed }) => {
   return <div className="avatar">{seed}</div>;
@@ -196,11 +69,186 @@ const MessageCard = ({ message, onLike, onReply }) => {
   );
 };
 
-const PostComposer = ({ activeChat, onPost }) => {
+const PollModal = ({ isOpen, onClose, onSave }) => {
+  const [question, setQuestion] = useState('');
+  const [options, setOptions] = useState(['', '']);
+
+  const addOption = () => {
+    if (options.length < 10) {
+      setOptions([...options, '']);
+    }
+  };
+
+  const removeOption = (index) => {
+    if (options.length > 2) {
+      setOptions(options.filter((_, i) => i !== index));
+    }
+  };
+
+  const updateOption = (index, value) => {
+    const newOptions = [...options];
+    newOptions[index] = value;
+    setOptions(newOptions);
+  };
+
+  const handleSave = () => {
+    const validOptions = options.filter(opt => opt.trim() !== '');
+    if (question.trim() && validOptions.length >= 2) {
+      onSave({ question: question.trim(), options: validOptions });
+      setQuestion('');
+      setOptions(['', '']);
+      onClose();
+    } else {
+      alert('Please provide a question and at least 2 options');
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000
+    }} onClick={onClose}>
+      <div style={{
+        background: 'white',
+        borderRadius: '16px',
+        padding: '24px',
+        maxWidth: '500px',
+        width: '90%',
+        maxHeight: '80vh',
+        overflow: 'auto'
+      }} onClick={(e) => e.stopPropagation()}>
+        <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: '600' }}>Create Poll</h3>
+        
+        <div style={{ marginBottom: '16px' }}>
+          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
+            Poll Question
+          </label>
+          <input
+            type="text"
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            placeholder="Ask a question..."
+            style={{
+              width: '100%',
+              padding: '10px',
+              border: '1px solid #e2e8f0',
+              borderRadius: '8px',
+              fontSize: '14px'
+            }}
+          />
+        </div>
+
+        <div style={{ marginBottom: '16px' }}>
+          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
+            Options (minimum 2)
+          </label>
+          {options.map((opt, index) => (
+            <div key={index} style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+              <input
+                type="text"
+                value={opt}
+                onChange={(e) => updateOption(index, e.target.value)}
+                placeholder={`Option ${index + 1}`}
+                style={{
+                  flex: 1,
+                  padding: '10px',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  fontSize: '14px'
+                }}
+              />
+              {options.length > 2 && (
+                <button
+                  onClick={() => removeOption(index)}
+                  style={{
+                    padding: '8px 12px',
+                    background: '#fef2f2',
+                    border: '1px solid #fee2e2',
+                    borderRadius: '8px',
+                    color: '#dc2626',
+                    cursor: 'pointer',
+                    fontSize: '14px'
+                  }}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          ))}
+          {options.length < 10 && (
+            <button
+              onClick={addOption}
+              style={{
+                padding: '8px 16px',
+                background: '#f0f9ff',
+                border: '1px solid #e0f2fe',
+                borderRadius: '8px',
+                color: '#0369a1',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500'
+              }}
+            >
+              + Add Option
+            </button>
+          )}
+        </div>
+
+        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+          <button
+            onClick={onClose}
+            style={{
+              padding: '10px 20px',
+              background: '#f1f5f9',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: '500'
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            style={{
+              padding: '10px 20px',
+              background: '#3b82f6',
+              border: 'none',
+              borderRadius: '8px',
+              color: 'white',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: '500'
+            }}
+          >
+            Add Poll
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const PostComposer = ({ activeChat, onPost, disabled, onAttach, onLinkChange, linkUrl, fileName }) => {
   const [postContent, setPostContent] = useState('');
   const [postType, setPostType] = useState('post');
+  const [showPollModal, setShowPollModal] = useState(false);
+  const [pollData, setPollData] = useState(null);
+  const fileRef = useRef(null);
 
   const handleSubmit = () => {
+    if (disabled) return;
     if (postContent.trim()) {
       onPost({
         user: 'You',
@@ -209,10 +257,17 @@ const PostComposer = ({ activeChat, onPost }) => {
         timestamp: 'now',
         type: postType,
         likes: 0,
-        replies: 0
+        replies: 0,
+        pollData
       });
       setPostContent('');
+      setPollData(null);
     }
+  };
+
+  const handlePollSave = (poll) => {
+    setPollData(poll);
+    setShowPollModal(false);
   };
 
   const handleKeyPress = (e) => {
@@ -246,9 +301,30 @@ const PostComposer = ({ activeChat, onPost }) => {
         />
         <div className="composer-actions">
           <div className="composer-tools">
-            <button type="button" className="tool-btn" title="Add Image">📷</button>
-            <button type="button" className="tool-btn" title="Add Link">🔗</button>
-            <button type="button" className="tool-btn" title="Add Poll">📊</button>
+            <input ref={fileRef} type="file" accept="image/*,application/pdf" style={{ display: 'none' }} onChange={(e) => { const f = e.target.files?.[0]; if (f) onAttach?.(f); }} />
+            <button type="button" className="tool-btn" title="Add Image/Doc" onClick={() => fileRef.current?.click()}>📎</button>
+            {fileName && <span style={{ fontSize: 12, color: '#64748b' }}>{fileName}</span>}
+            <input
+              type="url"
+              placeholder="Paste a link (optional)"
+              value={linkUrl}
+              onChange={(e) => onLinkChange?.(e.target.value)}
+              style={{ marginLeft: 8, padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 8, minWidth: 180 }}
+            />
+            <button 
+              type="button" 
+              className="tool-btn" 
+              title="Add Poll"
+              onClick={() => setShowPollModal(true)}
+              style={pollData ? { background: '#dbeafe', color: '#1e40af' } : {}}
+            >
+              📊 {pollData ? 'Poll Added' : 'Poll'}
+            </button>
+            {pollData && (
+              <span style={{ fontSize: 12, color: '#64748b', marginLeft: 4 }}>
+                {pollData.question}
+              </span>
+            )}
             <button type="button" className="tool-btn" title="Add Code">💻</button>
           </div>
           <div className="composer-submit">
@@ -256,51 +332,38 @@ const PostComposer = ({ activeChat, onPost }) => {
             <button 
               onClick={handleSubmit} 
               className="post-btn"
-              disabled={!postContent.trim()}
+            disabled={disabled || !postContent.trim()}
             >
               Post to #{activeChat}
             </button>
           </div>
         </div>
       </div>
+      <PollModal 
+        isOpen={showPollModal}
+        onClose={() => setShowPollModal(false)}
+        onSave={handlePollSave}
+      />
     </div>
   );
 };
 
 const CommunityChatsPage = () => {
   const { chatId } = useParams();
-  const [activeChat, setActiveChat] = useState(
-    chatId || 'machine-learning'
-  );
-  const [messages, setMessages] = useState(initialMessages);
+  const navigate = useNavigate();
+  const [activeChat, setActiveChat] = useState(chatId || ''); // holds communityId
+  const [messages, setMessages] = useState([]); // backend posts
   const [searchTerm, setSearchTerm] = useState('');
   const [onlineUsers, setOnlineUsers] = useState(24);
   const [isTyping, setIsTyping] = useState([]);
+  const [myCommunities, setMyCommunities] = useState([]);
+  const [discoverCommunities, setDiscoverCommunities] = useState([]);
   const messagesEndRef = useRef(null);
-
-  const chats = [
-    { 
-      id: 'machine-learning', 
-      name: 'Machine Learning', 
-      members: 156, 
-      color: '#8b5cf6',
-      description: 'Deep learning, neural networks, AI discussions'
-    },
-    { 
-      id: 'web-development', 
-      name: 'Web Development', 
-      members: 203, 
-      color: '#06b6d4',
-      description: 'Frontend, backend, full-stack development'
-    },
-    { 
-      id: 'competitive-programming', 
-      name: 'Competitive Programming', 
-      members: 89, 
-      color: '#f59e0b',
-      description: 'Algorithms, data structures, contest prep'
-    }
-  ];
+  const user = JSON.parse(localStorage.getItem('user') || 'null');
+  const role = (localStorage.getItem('role') || '').toLowerCase();
+  const [pendingFile, setPendingFile] = useState(null);
+  const [linkUrl, setLinkUrl] = useState('');
+  const [polls, setPolls] = useState({}); // Store polls by postId
 
   // Update active chat when URL parameter changes
   useEffect(() => {
@@ -310,7 +373,7 @@ const CommunityChatsPage = () => {
   }, [chatId]);
 
   useEffect(() => {
-    // Simulate real-time updates
+    // Simulate online indicator
     const interval = setInterval(() => {
       setOnlineUsers(prev => Math.max(15, prev + Math.floor(Math.random() * 6) - 3));
     }, 30000);
@@ -339,13 +402,92 @@ const CommunityChatsPage = () => {
 
   useEffect(scrollToBottom, [messages, activeChat]);
 
-  const handleLike = (messageId) => {
-    setMessages(prev => ({
-      ...prev,
-      [activeChat]: prev[activeChat].map(msg =>
-        msg.id === messageId ? { ...msg, likes: msg.likes + 1 } : msg
-      )
-    }));
+  // Load user's communities and discover list (mentees limited to mentors' communities)
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const mine = await communitiesAPI.mine();
+        setMyCommunities(mine || []);
+
+        if (role === 'mentee') {
+          const conns = await requestAPI.connections(localStorage.getItem('token'));
+          const mentorIds = new Set((conns || []).map(c => c.mentorId?._id || c.mentorId));
+          const all = await communitiesAPI.list();
+          const allowed = (all || []).filter(c => mentorIds.has(c.mentorId?._id || c.mentorId));
+          setDiscoverCommunities(allowed);
+        }
+      } catch (err) {
+        console.error('load communities:', err);
+      }
+    };
+    load();
+  }, [role]);
+
+  const handleReact = async (postId, reaction) => {
+    try {
+      await communityReactionsAPI.react(postId, reaction);
+      // Reload posts to get updated reaction counts
+      if (activeChat) {
+        const posts = await communityPostsAPI.list(activeChat);
+        setMessages(posts);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Failed to react');
+    }
+  };
+
+  const handleDeletePost = async (postId) => {
+    if (!window.confirm('Are you sure you want to delete this post?')) {
+      return;
+    }
+    try {
+      await communityPostsAPI.delete(activeChat, postId);
+      // Reload posts after deletion
+      const posts = await communityPostsAPI.list(activeChat);
+      setMessages(posts);
+      
+      // Remove poll from state if exists
+      if (polls[postId]) {
+        const newPolls = { ...polls };
+        delete newPolls[postId];
+        setPolls(newPolls);
+      }
+      
+      alert('Post deleted successfully');
+    } catch (err) {
+      console.error(err);
+      alert('Failed to delete post');
+    }
+  };
+
+  const handleVote = async (postId, optionIndex) => {
+    try {
+      const currentPoll = polls[postId];
+      const hasVoted = currentPoll?.hasVoted || false;
+      
+      // Use PATCH for re-voting, POST for first vote
+      const updatedPoll = hasVoted 
+        ? await pollAPI.revote(postId, optionIndex)
+        : await pollAPI.vote(postId, optionIndex);
+      
+      // Update poll in state
+      setPolls(prev => ({
+        ...prev,
+        [postId]: {
+          ...updatedPoll.poll,
+          hasVoted: true,
+          userVoteIndex: optionIndex
+        }
+      }));
+      
+      // Reload posts to get updated data
+      const posts = await communityPostsAPI.list(activeChat);
+      setMessages(posts);
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || 'Failed to vote');
+    }
   };
 
   const handleReply = (messageId) => {
@@ -353,25 +495,100 @@ const CommunityChatsPage = () => {
     alert(`Reply feature coming soon! Message ID: ${messageId}`);
   };
 
-  const handlePost = (newPost) => {
-    const post = {
-      ...newPost,
-      id: Date.now(),
-    };
-    
-    setMessages(prev => ({
-      ...prev,
-      [activeChat]: [post, ...prev[activeChat]]
-    }));
+  // Helper to construct full URL for attachments
+  const getFullUrl = (url) => {
+    if (!url) return '';
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+    const cleanBase = baseUrl.replace(/\/$/, '');
+    const cleanUrl = url.startsWith('/') ? url : `/${url}`;
+    // Avoid double /api if baseUrl already has /api
+    if (cleanBase.endsWith('/api') && cleanUrl.startsWith('/api/')) {
+      return `${cleanBase.replace(/\/api$/, '')}${cleanUrl}`;
+    }
+    return `${cleanBase}${cleanUrl}`;
   };
 
-  const currentMessages = messages[activeChat] || [];
-  const filteredMessages = currentMessages.filter(msg =>
-    msg.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    msg.user.toLowerCase().includes(searchTerm.toLowerCase())
+  const handlePost = async (newPost) => {
+    try {
+      if (!activeChat) return;
+      let mediaUrl = linkUrl && linkUrl.trim() ? linkUrl.trim() : undefined;
+      if (pendingFile) {
+        const { mediaUrl: uploadedUrl } = await communityPostsAPI.upload(activeChat, pendingFile);
+        mediaUrl = uploadedUrl;
+      }
+      const createdPost = await communityPostsAPI.create(activeChat, { content: newPost.message, mediaUrl });
+      
+      // Create poll if poll data exists
+      if (createdPost && createdPost._id && newPost.pollData) {
+        try {
+          await pollAPI.create(createdPost._id, newPost.pollData);
+        } catch (pollErr) {
+          console.error('Failed to create poll:', pollErr);
+          alert('Post created but poll failed. You can add it later.');
+        }
+      }
+      
+      // Redirect to post detail page after successful creation
+      if (createdPost && createdPost._id) {
+        navigate(`/community-chats/${activeChat}/posts/${createdPost._id}`);
+      } else {
+        // Fallback: reload posts if redirect fails
+        const posts = await communityPostsAPI.list(activeChat);
+        setMessages(posts);
+        setPendingFile(null);
+        setLinkUrl('');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Failed to post');
+    }
+  };
+
+  // Load posts when activeChat changes
+  useEffect(() => {
+    const loadPosts = async () => {
+      try {
+        if (!activeChat) return;
+        const posts = await communityPostsAPI.list(activeChat);
+        setMessages(posts);
+        
+        // Load polls for posts that have them
+        const postsWithPolls = posts.filter(p => p.hasPoll);
+        const pollPromises = postsWithPolls.map(async (post) => {
+          try {
+            const poll = await pollAPI.get(post._id);
+            return { postId: post._id, poll };
+          } catch (err) {
+            console.error(`Failed to load poll for post ${post._id}:`, err);
+            return null;
+          }
+        });
+        
+        const pollResults = await Promise.all(pollPromises);
+        const pollsMap = {};
+        pollResults.forEach(result => {
+          if (result) {
+            pollsMap[result.postId] = result.poll;
+          }
+        });
+        setPolls(pollsMap);
+      } catch (err) {
+        console.error('load posts:', err);
+      }
+    };
+    loadPosts();
+  }, [activeChat]);
+
+  const filteredMessages = (messages || []).filter(msg =>
+    (msg.content || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (msg.mentorId?.name || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const activeChatter = chats.find(chat => chat.id === activeChat);
+  const activeChatter = myCommunities.find(c => String(c._id) === String(activeChat))
+    || discoverCommunities.find(c => String(c._id) === String(activeChat));
 
   return (
     <div style={{
@@ -439,19 +656,19 @@ const CommunityChatsPage = () => {
           />
         </div>
 
-        {/* Chat List */}
+        {/* Chat List (My Communities) */}
         <div style={{ flex: 1, overflow: 'auto', padding: '0 10px' }}>
-          {chats.map(chat => (
+          {(myCommunities || []).map(chat => (
             <button
-              key={chat.id}
-              onClick={() => setActiveChat(chat.id)}
+              key={chat._id}
+              onClick={() => setActiveChat(chat._id)}
               style={{
                 width: '100%',
                 padding: '16px 16px',
                 margin: '4px 0',
                 border: 'none',
-                backgroundColor: activeChat === chat.id ? '#f1f5f9' : 'transparent',
-                borderLeft: activeChat === chat.id ? `4px solid ${chat.color}` : '4px solid transparent',
+                backgroundColor: String(activeChat) === String(chat._id) ? '#f1f5f9' : 'transparent',
+                borderLeft: String(activeChat) === String(chat._id) ? `4px solid #8b5cf6` : '4px solid transparent',
                 borderRadius: '12px',
                 textAlign: 'left',
                 cursor: 'pointer',
@@ -462,12 +679,12 @@ const CommunityChatsPage = () => {
                 transition: 'all 0.2s ease'
               }}
               onMouseEnter={(e) => {
-                if (activeChat !== chat.id) {
+                if (String(activeChat) !== String(chat._id)) {
                   e.target.style.backgroundColor = '#f8fafc';
                 }
               }}
               onMouseLeave={(e) => {
-                if (activeChat !== chat.id) {
+                if (String(activeChat) !== String(chat._id)) {
                   e.target.style.backgroundColor = 'transparent';
                 }
               }}
@@ -483,15 +700,15 @@ const CommunityChatsPage = () => {
                     width: '12px',
                     height: '12px',
                     borderRadius: '50%',
-                    backgroundColor: chat.color
+                    backgroundColor: '#8b5cf6'
                   }}
                 />
                 <span style={{
-                  fontWeight: activeChat === chat.id ? '600' : '500',
+                  fontWeight: String(activeChat) === String(chat._id) ? '600' : '500',
                   fontSize: '15px',
                   color: '#1f2937'
                 }}>
-                  #{chat.name.replace(/\s+/g, '-').toLowerCase()}
+                  #{String(chat.name || '').replace(/\s+/g, '-').toLowerCase()}
                 </span>
               </div>
               <span style={{
@@ -510,12 +727,26 @@ const CommunityChatsPage = () => {
                 justifyContent: 'space-between',
                 width: 'calc(100% - 22px)'
               }}>
-                <span>{chat.members} members</span>
-                {activeChat === chat.id && <span>●</span>}
+                <span>{(chat.members || []).length} members</span>
+                {String(activeChat) === String(chat._id) && <span>●</span>}
               </div>
             </button>
           ))}
         </div>
+
+        {/* Discover (mentees only) */}
+        {role === 'mentee' && (
+          <div style={{ borderTop: '1px solid #e2e8f0', padding: '12px 10px' }}>
+            <h4 style={{ margin: '8px 0' }}>Discover from Your Mentors</h4>
+            {(discoverCommunities || []).map(c => (
+              <div key={c._id} style={{ marginBottom: 8 }}>
+                <div style={{ fontWeight: 600 }}>{c.name}</div>
+                <div style={{ fontSize: 12, color: '#64748b' }}>{c.description}</div>
+                <button onClick={async () => { await communitiesAPI.join(c._id); setMyCommunities(prev => [...prev, c]); }} style={{ marginTop: 6, padding: '6px 10px', borderRadius: 6, border: 'none', background: '#667eea', color: 'white', cursor: 'pointer' }}>Join</button>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Quick Stats */}
         <div style={{
@@ -561,14 +792,14 @@ const CommunityChatsPage = () => {
               fontWeight: '600',
               color: '#1f2937'
             }}>
-              #{activeChat}
+              #{activeChatter?.name || 'Select a community'}
             </h3>
             <p style={{ 
               margin: '2px 0 0 0', 
               fontSize: '14px', 
               color: '#64748b'
             }}>
-              {activeChatter?.description} • {activeChatter?.members} members • {filteredMessages.length} messages
+              {activeChatter?.description} • {(activeChatter?.members || []).length} members • {filteredMessages.length} messages
             </p>
           </div>
           <div style={{ display: 'flex', gap: '8px' }}>
@@ -604,15 +835,371 @@ const CommunityChatsPage = () => {
           flexDirection: 'column',
           gap: '16px'
         }}>
-          <PostComposer activeChat={activeChat} onPost={handlePost} />
+          {/* Only show PostComposer for mentors who own the community */}
+          {role === 'mentor' && activeChatter && String(activeChatter?.mentorId?._id || activeChatter?.mentorId) === String(user?._id) && (
+            <PostComposer
+              activeChat={activeChat}
+              onPost={handlePost}
+              onAttach={(file) => setPendingFile(file)}
+              onLinkChange={setLinkUrl}
+              linkUrl={linkUrl}
+              fileName={pendingFile?.name}
+              disabled={!activeChatter}
+            />
+          )}
           
           {filteredMessages.map(message => (
-            <MessageCard
-              key={message.id}
-              message={message}
-              onLike={handleLike}
-              onReply={handleReply}
-            />
+            <div 
+              key={message._id} 
+              className="message-card"
+              style={{ cursor: 'pointer' }}
+              onClick={(e) => {
+                // Don't navigate if clicking on action buttons, links, or poll
+                if (e.target.closest('.message-actions') || e.target.closest('a') || e.target.closest('[data-poll]')) {
+                  return;
+                }
+                navigate(`/community-chats/${activeChat}/posts/${message._id}`);
+              }}
+            >
+              <div className="message-header">
+                <div 
+                  className="avatar"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (message.mentorId?._id || message.mentorId) {
+                      navigate(`/profile/${message.mentorId._id || message.mentorId}`);
+                    }
+                  }}
+                  style={{ cursor: 'pointer' }}
+                >
+                  {(message.mentorId?.name || 'M').split(' ').map(n => n[0]).slice(0,2).join('')}
+                </div>
+                <div className="message-meta">
+                  <div className="user-info">
+                    <span 
+                      className="username"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (message.mentorId?._id || message.mentorId) {
+                          navigate(`/profile/${message.mentorId._id || message.mentorId}`);
+                        }
+                      }}
+                      style={{ cursor: 'pointer', textDecoration: 'underline' }}
+                    >
+                      {message.mentorId?.name || 'Mentor'}
+                    </span>
+                    <span className="message-type" style={{ backgroundColor: '#3b82f6' }}>📝 post</span>
+                  </div>
+                  <span className="timestamp">{new Date(message.createdAt || Date.now()).toLocaleString()}</span>
+                </div>
+              </div>
+              <div className="message-content">
+                {message.content}
+                {message.mediaUrl && (
+                  message.mediaUrl.match(/\.(png|jpe?g|gif|webp)$/i) ? (
+                    <div style={{ marginTop: 8, display: 'flex', justifyContent: 'center' }}>
+                      <img 
+                        src={getFullUrl(message.mediaUrl)} 
+                        alt="attachment" 
+                        style={{ 
+                          maxWidth: '400px', 
+                          maxHeight: '300px',
+                          width: 'auto',
+                          height: 'auto',
+                          borderRadius: 8, 
+                          border: '1px solid #e2e8f0',
+                          objectFit: 'contain'
+                        }} 
+                      />
+                    </div>
+                  ) : message.mediaUrl.match(/\.pdf$/i) ? (
+                    <div style={{ marginTop: 8, padding: '12px', background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                        <span style={{ fontSize: '20px' }}>📄</span>
+                        <span style={{ fontSize: '14px', color: '#64748b' }}>PDF Document</span>
+                      </div>
+                      <a 
+                        href={getFullUrl(message.mediaUrl)} 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        style={{ 
+                          color: '#2563eb',
+                          textDecoration: 'none',
+                          fontWeight: '500',
+                          fontSize: '14px'
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                        }}
+                      >
+                        → Open PDF in Browser
+                      </a>
+                    </div>
+                  ) : (
+                    <div style={{ marginTop: 8 }}>
+                      <a 
+                        href={getFullUrl(message.mediaUrl)} 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        style={{ color: '#2563eb' }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        🔗 Open Link / Attachment
+                      </a>
+                    </div>
+                  )
+                )}
+                
+                {/* Poll Display */}
+                {message.hasPoll && polls[message._id] && (
+                  <div 
+                    data-poll 
+                    onClick={(e) => e.stopPropagation()} 
+                    style={{
+                      marginTop: '16px',
+                      padding: '16px',
+                      background: '#f0f9ff',
+                      borderRadius: '12px',
+                      border: '1px solid #e0f2fe'
+                    }}
+                  >
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      marginBottom: '12px'
+                    }}>
+                      <span style={{ fontSize: '20px' }}>📊</span>
+                      <h4 style={{
+                        margin: 0,
+                        fontSize: '16px',
+                        fontWeight: '600',
+                        color: '#1f2937'
+                      }}>
+                        {polls[message._id].question}
+                      </h4>
+                    </div>
+                    
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {polls[message._id].options.map((option, index) => {
+                        const percentage = polls[message._id].totalVotes > 0 
+                          ? Math.round((option.count / polls[message._id].totalVotes) * 100) 
+                          : 0;
+                        const isSelected = polls[message._id].userVoteIndex === index;
+                        const hasVoted = polls[message._id].hasVoted;
+                        
+                        return (
+                          <div key={index}>
+                            {/* For mentees: show clickable buttons if not voted, or if voted show clickable options with results */}
+                            {role === 'mentee' ? (
+                              <button
+                                onClick={() => handleVote(message._id, index)}
+                                style={{
+                                  width: '100%',
+                                  padding: '12px 16px',
+                                  background: isSelected ? '#dbeafe' : 'white',
+                                  border: `2px solid ${isSelected ? '#3b82f6' : '#e0f2fe'}`,
+                                  borderRadius: '8px',
+                                  textAlign: 'left',
+                                  cursor: 'pointer',
+                                  fontSize: '14px',
+                                  color: '#374151',
+                                  transition: 'all 0.2s ease',
+                                  position: 'relative',
+                                  overflow: 'hidden'
+                                }}
+                                onMouseEnter={(e) => {
+                                  if (!isSelected) {
+                                    e.target.style.borderColor = '#3b82f6';
+                                    e.target.style.background = '#f0f9ff';
+                                  }
+                                }}
+                                onMouseLeave={(e) => {
+                                  if (!isSelected) {
+                                    e.target.style.borderColor = '#e0f2fe';
+                                    e.target.style.background = 'white';
+                                  }
+                                }}
+                              >
+                                <div style={{
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  alignItems: 'center',
+                                  position: 'relative',
+                                  zIndex: 2
+                                }}>
+                                  <span style={{
+                                    fontSize: '14px',
+                                    fontWeight: isSelected ? '600' : '500',
+                                    color: '#374151'
+                                  }}>
+                                    {isSelected && <span style={{ marginRight: '8px' }}>✓</span>}
+                                    {option.text}
+                                  </span>
+                                  {hasVoted && (
+                                    <span style={{
+                                      fontSize: '14px',
+                                      fontWeight: '600',
+                                      color: '#64748b'
+                                    }}>
+                                      {option.count} {option.count === 1 ? 'vote' : 'votes'} {percentage > 0 && `(${percentage}%)`}
+                                    </span>
+                                  )}
+                                </div>
+                                {hasVoted && percentage > 0 && (
+                                  <div style={{
+                                    position: 'absolute',
+                                    top: 0,
+                                    left: 0,
+                                    height: '100%',
+                                    width: `${percentage}%`,
+                                    background: isSelected ? '#93c5fd' : '#e0f2fe',
+                                    opacity: 0.3,
+                                    zIndex: 1,
+                                    transition: 'width 0.3s ease'
+                                  }} />
+                                )}
+                              </button>
+                            ) : (
+                              /* For mentors: show results only */
+                              <div style={{
+                                padding: '12px 16px',
+                                background: 'white',
+                                border: '2px solid #e0f2fe',
+                                borderRadius: '8px',
+                                position: 'relative',
+                                overflow: 'hidden'
+                              }}>
+                                <div style={{
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  alignItems: 'center',
+                                  position: 'relative',
+                                  zIndex: 2
+                                }}>
+                                  <span style={{
+                                    fontSize: '14px',
+                                    fontWeight: '500',
+                                    color: '#374151'
+                                  }}>
+                                    {option.text}
+                                  </span>
+                                  <span style={{
+                                    fontSize: '14px',
+                                    fontWeight: '600',
+                                    color: '#64748b'
+                                  }}>
+                                    {option.count} {option.count === 1 ? 'vote' : 'votes'} {percentage > 0 && `(${percentage}%)`}
+                                  </span>
+                                </div>
+                                {percentage > 0 && (
+                                  <div style={{
+                                    position: 'absolute',
+                                    top: 0,
+                                    left: 0,
+                                    height: '100%',
+                                    width: `${percentage}%`,
+                                    background: '#e0f2fe',
+                                    opacity: 0.3,
+                                    zIndex: 1,
+                                    transition: 'width 0.3s ease'
+                                  }} />
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    
+                    <div style={{
+                      marginTop: '12px',
+                      fontSize: '12px',
+                      color: '#64748b',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      flexWrap: 'wrap'
+                    }}>
+                      <span>📊 {polls[message._id].totalVotes} {polls[message._id].totalVotes === 1 ? 'vote' : 'votes'}</span>
+                      {polls[message._id].hasVoted && role === 'mentee' && (
+                        <>
+                          <span style={{ marginLeft: '8px' }}>• You voted</span>
+                          <span style={{ marginLeft: '8px', fontStyle: 'italic' }}>• Click to change vote</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+              {/* Delete button for mentors (only on their own posts) */}
+              {role === 'mentor' && String(message.mentorId?._id || message.mentorId) === String(user?._id) && (
+                <div className="message-actions" onClick={(e) => e.stopPropagation()}>
+                  <button 
+                    className="action-btn delete-btn" 
+                    onClick={() => handleDeletePost(message._id)}
+                    style={{
+                      background: '#fef2f2',
+                      border: '1px solid #fee2e2',
+                      color: '#dc2626'
+                    }}
+                  >
+                    🗑️ Delete
+                  </button>
+                </div>
+              )}
+              
+              {/* Reaction buttons for mentees */}
+              {role === 'mentee' && (
+                <div className="message-actions" onClick={(e) => e.stopPropagation()}>
+                  <button className="action-btn like-btn" onClick={() => handleReact(message._id, '❤️')}>
+                    ❤️ {message.reactionSummary?.heart || 0}
+                  </button>
+                  <button className="action-btn reply-btn" onClick={() => handleReact(message._id, '👍')}>
+                    👍 {message.reactionSummary?.thumbsUp || 0}
+                  </button>
+                  <button className="action-btn share-btn" onClick={() => handleReact(message._id, '🔥')}>
+                    🔥 {message.reactionSummary?.fire || 0}
+                  </button>
+                </div>
+              )}
+
+              {/* Reaction summary for mentors */}
+              {role === 'mentor' && (message.reactionSummary?.heart || message.reactionSummary?.thumbsUp || message.reactionSummary?.fire) && (
+                <div style={{
+                  marginTop: '12px',
+                  padding: '12px',
+                  background: '#f8fafc',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  color: '#64748b',
+                  display: 'flex',
+                  gap: '16px',
+                  alignItems: 'center'
+                }}>
+                  <span style={{ fontWeight: '600' }}>Reactions:</span>
+                  {message.reactionSummary.heart > 0 && (
+                    <span>❤️ {message.reactionSummary.heart}</span>
+                  )}
+                  {message.reactionSummary.thumbsUp > 0 && (
+                    <span>👍 {message.reactionSummary.thumbsUp}</span>
+                  )}
+                  {message.reactionSummary.fire > 0 && (
+                    <span>🔥 {message.reactionSummary.fire}</span>
+                  )}
+                </div>
+              )}
+              <div style={{ 
+                marginTop: '12px', 
+                fontSize: '12px', 
+                color: '#64748b',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}>
+                <span>👆 Click to view full post</span>
+              </div>
+            </div>
           ))}
           
           {/* Typing Indicator */}
@@ -662,6 +1249,7 @@ const CommunityChatsPage = () => {
           box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
           transform: translateY(-2px);
           border-color: #e2e8f0;
+          background: #fefefe;
         }
 
         .message-header {

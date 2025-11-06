@@ -1,9 +1,34 @@
 // LeaderboardPage.jsx
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { leaderboardAPI } from './api';
 
-const LeaderboardPage = ({ mentors = [] }) => {
-  // Sort mentors by rating in descending order
-  const sortedMentors = [...mentors].sort((a, b) => b.rating - a.rating);
+const LeaderboardPage = () => {
+  const navigate = useNavigate();
+  const [mentors, setMentors] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchLeaderboard = async () => {
+      try {
+        setLoading(true);
+        const data = await leaderboardAPI.list();
+        setMentors(data || []);
+        setError(null);
+      } catch (err) {
+        console.error('Failed to load leaderboard:', err);
+        setError('Failed to load leaderboard data');
+        setMentors([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchLeaderboard();
+  }, []);
+
+  // Mentors are already sorted by score from the API
+  const sortedMentors = mentors;
 
   const getMedalIcon = (position) => {
     if (position === 1) return '🥇';
@@ -103,7 +128,26 @@ const LeaderboardPage = ({ mentors = [] }) => {
           padding: '2rem',
           boxShadow: '0 10px 30px rgba(0,0,0,0.1)'
         }}>
-          {sortedMentors.length === 0 ? (
+          {loading ? (
+            <div style={{
+              textAlign: 'center',
+              padding: '4rem 2rem',
+              color: '#6B7280'
+            }}>
+              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⏳</div>
+              <h3>Loading leaderboard...</h3>
+            </div>
+          ) : error ? (
+            <div style={{
+              textAlign: 'center',
+              padding: '4rem 2rem',
+              color: '#dc2626'
+            }}>
+              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>❌</div>
+              <h3>Error loading leaderboard</h3>
+              <p>{error}</p>
+            </div>
+          ) : sortedMentors.length === 0 ? (
             <div style={{
               textAlign: 'center',
               padding: '4rem 2rem',
@@ -119,7 +163,7 @@ const LeaderboardPage = ({ mentors = [] }) => {
                 const position = index + 1;
                 return (
                   <div
-                    key={mentor.id}
+                    key={mentor.mentorId || mentor._id || index}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -151,63 +195,102 @@ const LeaderboardPage = ({ mentors = [] }) => {
                     </div>
 
                     {/* Avatar */}
-                    <div style={{
-                      width: '80px',
-                      height: '80px',
-                      borderRadius: '50%',
-                      background: mentor.bgColor || `linear-gradient(135deg, #667eea 0%, #764ba2 100%)`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'white',
-                      fontSize: '2rem',
-                      fontWeight: 'bold',
-                      marginRight: '1.5rem',
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-                    }}>
+                    <div 
+                      onClick={() => navigate(`/profile/${mentor.mentorId || mentor._id}`)}
+                      style={{
+                        width: '80px',
+                        height: '80px',
+                        borderRadius: '50%',
+                        background: mentor.bgColor || `linear-gradient(135deg, #667eea 0%, #764ba2 100%)`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'white',
+                        fontSize: '2rem',
+                        fontWeight: 'bold',
+                        marginRight: '1.5rem',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                        cursor: 'pointer',
+                        transition: 'transform 0.2s ease'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'scale(1.05)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'scale(1)';
+                      }}
+                    >
                       {mentor.name.split(' ').map(n => n[0]).join('')}
                     </div>
 
                     {/* Mentor Info */}
                     <div style={{ flex: 1 }}>
-                      <h3 style={{
-                        margin: '0 0 0.5rem 0',
-                        fontSize: '1.4rem',
-                        fontWeight: 'bold',
-                        color: position <= 3 ? 'white' : '#1F2937'
-                      }}>
+                      <h3 
+                        onClick={() => navigate(`/profile/${mentor.mentorId || mentor._id}`)}
+                        style={{
+                          margin: '0 0 0.5rem 0',
+                          fontSize: '1.4rem',
+                          fontWeight: 'bold',
+                          color: position <= 3 ? 'white' : '#1F2937',
+                          cursor: 'pointer',
+                          textDecoration: 'underline',
+                          textDecorationColor: position <= 3 ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.2)'
+                        }}
+                      >
                         {mentor.name}
                       </h3>
-                      <p style={{
+                      <div style={{
                         margin: '0 0 0.5rem 0',
                         color: position <= 3 ? 'rgba(255,255,255,0.9)' : '#6B7280',
                         fontSize: '1rem'
                       }}>
-                        {mentor.expertise} • {mentor.mentees} mentees
-                      </p>
+                        {mentor.badges && mentor.badges.length > 0 && (
+                          <div style={{ marginBottom: '0.25rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                            {mentor.badges.map((badge, idx) => (
+                              <span key={idx} style={{
+                                background: position <= 3 ? 'rgba(255,255,255,0.2)' : '#f0f9ff',
+                                padding: '0.25rem 0.75rem',
+                                borderRadius: '12px',
+                                fontSize: '0.85rem',
+                                fontWeight: '500'
+                              }}>
+                                {badge}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        <span>{mentor.menteesHelped || 0} mentees helped</span>
+                      </div>
                       <div style={{ marginTop: '0.5rem' }}>
-                        {getStarRating(mentor.rating)}
+                        {getStarRating(mentor.rating || 0)}
                       </div>
                     </div>
 
-                    {/* Rating Score */}
+                    {/* Score Display */}
                     <div style={{
                       textAlign: 'right',
-                      minWidth: '100px'
+                      minWidth: '120px'
                     }}>
                       <div style={{
                         fontSize: '2rem',
                         fontWeight: 'bold',
                         color: position <= 3 ? 'white' : '#1F2937'
                       }}>
-                        {mentor.rating.toFixed(1)}
+                        {mentor.score || 0}
                       </div>
                       <div style={{
                         fontSize: '0.9rem',
                         color: position <= 3 ? 'rgba(255,255,255,0.8)' : '#6B7280',
                         marginTop: '0.25rem'
                       }}>
-                        Rating
+                        Score
+                      </div>
+                      <div style={{
+                        fontSize: '0.85rem',
+                        color: position <= 3 ? 'rgba(255,255,255,0.7)' : '#9CA3AF',
+                        marginTop: '0.25rem'
+                      }}>
+                        Rank #{mentor.rank || position}
                       </div>
                     </div>
                   </div>
@@ -247,7 +330,7 @@ const LeaderboardPage = ({ mentors = [] }) => {
           }}>
             <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🎓</div>
             <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#1F2937' }}>
-              {sortedMentors.reduce((sum, mentor) => sum + mentor.mentees, 0)}
+              {sortedMentors.reduce((sum, mentor) => sum + (mentor.menteesHelped || 0), 0)}
             </div>
             <div style={{ color: '#6B7280' }}>Total Mentees</div>
           </div>

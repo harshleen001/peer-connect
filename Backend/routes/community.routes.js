@@ -139,4 +139,37 @@ router.get("/trending", auth(), async (req, res) => {
   }
 });
 
+/**
+ * Delete a community (mentor owner only)
+ * Also deletes posts and reactions under the community
+ */
+router.delete("/:id", auth(), async (req, res) => {
+  try {
+    if (req.user.role !== "mentor") {
+      return res.status(403).json({ message: "Only mentors can delete communities" });
+    }
+
+    const community = await Community.findById(req.params.id);
+    if (!community) return res.status(404).json({ message: "Community not found" });
+
+    if (community.mentorId.toString() !== req.user.id) {
+      return res.status(403).json({ message: "Not authorized to delete this community" });
+    }
+
+    // Delete related posts and reactions
+    const posts = await CommunityPost.find({ communityId: community._id }).select("_id");
+    const postIds = posts.map(p => p._id);
+    if (postIds.length) {
+      await CommunityReaction.deleteMany({ postId: { $in: postIds } });
+      await CommunityPost.deleteMany({ _id: { $in: postIds } });
+    }
+
+    await community.deleteOne();
+
+    res.json({ message: "Community deleted" });
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+});
+
 export default router;

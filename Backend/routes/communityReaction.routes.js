@@ -1,5 +1,4 @@
 // Backend/routes/communityReaction.routes.js
-// Backend/routes/communityReaction.routes.js
 import express from "express";
 import mongoose from "mongoose";
 import { auth } from "../middleware/auth.js";
@@ -8,6 +7,73 @@ import CommunityPost from "../models/CommunityPost.js";
 import Notification from "../models/Notification.js";
 
 const router = express.Router();
+
+/**
+ * Helper function to get reaction summary for a single post
+ * @param {mongoose.Types.ObjectId} postId - The post ID
+ * @returns {Promise<Object>} Reaction summary with heart, thumbsUp, fire counts
+ */
+export const getReactionSummary = async (postId) => {
+  const reactions = await CommunityReaction.aggregate([
+    { $match: { postId: new mongoose.Types.ObjectId(postId) } },
+    { $group: { _id: "$reaction", count: { $sum: 1 } } }
+  ]);
+
+  const reactionSummary = {
+    heart: 0,
+    thumbsUp: 0,
+    fire: 0
+  };
+
+  reactions.forEach(r => {
+    if (r._id === '❤️') reactionSummary.heart = r.count;
+    if (r._id === '👍') reactionSummary.thumbsUp = r.count;
+    if (r._id === '🔥') reactionSummary.fire = r.count;
+  });
+
+  return reactionSummary;
+};
+
+/**
+ * Helper function to get reaction summaries for multiple posts
+ * @param {Array<mongoose.Types.ObjectId>} postIds - Array of post IDs
+ * @returns {Promise<Map>} Map of postId -> reactionSummary
+ */
+export const getReactionSummaries = async (postIds) => {
+  if (!postIds || postIds.length === 0) {
+    return new Map();
+  }
+
+  const reactions = await CommunityReaction.aggregate([
+    { $match: { postId: { $in: postIds.map(id => new mongoose.Types.ObjectId(id)) } } },
+    { $group: { _id: { postId: "$postId", reaction: "$reaction" }, count: { $sum: 1 } } }
+  ]);
+
+  const summaryMap = new Map();
+  
+  // Initialize all posts with zero counts
+  postIds.forEach(id => {
+    summaryMap.set(id.toString(), {
+      heart: 0,
+      thumbsUp: 0,
+      fire: 0
+    });
+  });
+
+  // Fill in actual counts
+  reactions.forEach(r => {
+    const postId = r._id.postId.toString();
+    const summary = summaryMap.get(postId) || { heart: 0, thumbsUp: 0, fire: 0 };
+    
+    if (r._id.reaction === '❤️') summary.heart = r.count;
+    if (r._id.reaction === '👍') summary.thumbsUp = r.count;
+    if (r._id.reaction === '🔥') summary.fire = r.count;
+    
+    summaryMap.set(postId, summary);
+  });
+
+  return summaryMap;
+};
 
 /**
  * Add or update reaction (mentee only)

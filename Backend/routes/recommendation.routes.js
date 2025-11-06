@@ -39,6 +39,7 @@ router.get("/", async (req, res) => {
         skills: mentor.skills,
         rating: mentor.rating,
         menteesHelped: mentor.menteesHelped,
+        profilePicture: mentor.profilePicture,
         overlap,
         score,
       };
