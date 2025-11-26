@@ -6,6 +6,7 @@ import path from "path";
 import Community from "../models/Community.js";
 import CommunityPost from "../models/CommunityPost.js";
 import Notification from "../models/Notification.js";
+import User from "../models/User.js";
 import { getReactionSummary, getReactionSummaries } from "./communityReaction.routes.js";
 
 const router = express.Router();
@@ -44,16 +45,18 @@ router.post("/:communityId/posts", auth(), async (req, res) => {
       mediaUrl
     });
 
-    // ✅ Notify all community members (except mentor)
+    // ✅ Notify all community members (except mentor) with mentor name
     const memberIds = community.members.filter(
       (m) => m.toString() !== req.user.id
     );
+    const mentor = await User.findById(req.user.id).select("name");
 
     const notifications = memberIds.map((memberId) => ({
       userId: memberId,
-      message: `New post in ${community.name} by ${req.user.id}`,
+      message: `${mentor?.name || "Your mentor"} posted in ${community.name}`,
       type: "community",
-      link: `/community/${community._id}/posts/${post._id}`
+      link: `/community-chats/${community._id}/posts/${post._id}`,
+      data: { communityId: community._id.toString(), postId: post._id.toString(), fromName: mentor?.name || "", communityName: community.name },
     }));
 
     if (notifications.length > 0) {
@@ -189,7 +192,14 @@ router.get("/feed/my", auth(), async (req, res) => {
       .populate("communityId", "name")
       .sort({ createdAt: -1 });
 
-    res.json({ count: posts.length, posts });
+    const postIds = posts.map((p) => p._id);
+    const reactionSummaries = await getReactionSummaries(postIds);
+    const postsWithCounts = posts.map((post) => {
+      const s = reactionSummaries.get(post._id.toString()) || { heart: 0, thumbsUp: 0, fire: 0 };
+      return { ...post.toObject(), reactionSummary: s };
+    });
+
+    res.json({ count: postsWithCounts.length, posts: postsWithCounts });
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
   }

@@ -1,58 +1,58 @@
 // MessagesPage.jsx
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { useLocation, useSearchParams } from 'react-router-dom';
+import { chatsAPI } from './api';
+import { getSocket } from './socket';
 
 const MessagesPage = () => {
   const [selectedChat, setSelectedChat] = useState(null);
   const [newMessage, setNewMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Sample data - replace with real data later
-  const [chats] = useState([
-    { 
-      id: 1, 
-      name: 'Harshleen Kaur', 
-      role: 'Senior Developer', 
-      lastMessage: 'Thanks for the code review feedback!', 
-      time: '10:30 AM', 
-      unread: 2, 
-      avatar: '👩‍💻' 
-    },
-    { 
-      id: 2, 
-      name: 'Dishavpreet', 
-      role: 'Product Manager', 
-      lastMessage: 'Can we schedule a meeting to discuss the roadmap?', 
-      time: '9:15 AM', 
-      unread: 0, 
-      avatar: '👨‍💼' 
-    },
-    { 
-      id: 3, 
-      name: 'Manraj Khehra', 
-      role: 'UX Designer', 
-      lastMessage: 'I\'ve updated the design mockups', 
-      time: 'Yesterday', 
-      unread: 1, 
-      avatar: '👩‍🎨' 
-    },
-  ]);
+  const [chats, setChats] = useState([]);
+  const [messages, setMessages] = useState({}); // { [chatId]: [...] }
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const currentChatIdRef = useRef(null);
+  const messagesEndRef = useRef(null);
+  const currentUser = useMemo(() => {
+    try {
+      return JSON.parse(localStorage.getItem('user') || '{}');
+    } catch {
+      return {};
+    }
+  }, []);
 
-  const [messages] = useState({
-    1: [
-      { id: 1, text: 'Hi! I reviewed your latest pull request.', sender: 'them', time: '10:15 AM' },
-      { id: 2, text: 'The implementation looks good overall, just a few minor suggestions.', sender: 'them', time: '10:16 AM' },
-      { id: 3, text: 'Thanks! I\'ll make those changes.', sender: 'me', time: '10:25 AM' },
-      { id: 4, text: 'Thanks for the code review feedback!', sender: 'them', time: '10:30 AM' }
-    ],
-    2: [
-      { id: 1, text: 'Hey! Hope you\'re doing well.', sender: 'them', time: '9:00 AM' },
-      { id: 2, text: 'Can we schedule a meeting to discuss the roadmap?', sender: 'them', time: '9:15 AM' }
-    ],
-    3: [
-      { id: 1, text: 'I\'ve updated the design mockups', sender: 'them', time: 'Yesterday' },
-      { id: 2, text: 'Could you take a look when you have time?', sender: 'them', time: 'Yesterday' }
-    ]
-  });
+  useEffect(() => {
+    const loadChats = async () => {
+      try {
+        const data = await chatsAPI.list();
+        // Map backend chats to sidebar model
+        const mapped = data.map((c) => {
+          const other = (c.participants || []).find(p => (p?._id || p) !== currentUser._id);
+          return {
+            id: c._id,
+            name: other?.name || 'Chat',
+            role: other?.role || '',
+            lastMessage: (c.messages && c.messages.length > 0) ? c.messages[c.messages.length - 1].text : '',
+            time: (c.messages && c.messages.length > 0) ? new Date(c.messages[c.messages.length - 1].timestamp).toLocaleString() : '',
+            unread: 0,
+            avatar: '💬'
+          };
+        });
+        setChats(mapped);
+        // Auto-select chat if provided via navigation state or query parameter
+        const targetId = location.state?.chatId || searchParams.get('chatId');
+        if (targetId) {
+          const found = mapped.find(m => m.id === targetId);
+          if (found) setSelectedChat(found);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    loadChats();
+  }, [currentUser._id, location.state?.chatId, searchParams]);
 
   // Filter chats based on search query
   const filteredChats = useMemo(() => {
@@ -66,10 +66,148 @@ const MessagesPage = () => {
     );
   }, [chats, searchQuery]);
 
-  const handleSendMessage = () => {
+  useEffect(() => {
+    const loadMessages = async () => {
+      if (!selectedChat) return;
+      try {
+        const list = await chatsAPI.getMessages(selectedChat.id);
+        const mapped = list.map((m, idx) => ({
+          id: m._id || idx,
+          text: m.text,
+          sender: (m.senderId?._id || m.senderId) === currentUser._id ? 'me' : 'them',
+          time: m.timestamp ? new Date(m.timestamp).toLocaleString() : ''
+        }));
+        setMessages(prev => ({ ...prev, [selectedChat.id]: mapped }));
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    loadMessages();
+  }, [selectedChat, currentUser._id]);
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    if (messagesEndRef.current && selectedChat) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages[selectedChat?.id], selectedChat]);
+
+  // ✅ Socket: Join/leave chat rooms and listen for real-time messages
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+
+    // Leave previous chat room
+    if (currentChatIdRef.current) {
+      socket.emit("leaveRoom", currentChatIdRef.current);
+    }
+
+    // Join new chat room
+    if (selectedChat?.id) {
+      currentChatIdRef.current = selectedChat.id;
+      socket.emit("joinRoom", selectedChat.id);
+    } else {
+      currentChatIdRef.current = null;
+    }
+
+    // Listen for real-time messages
+    const handleChatMessage = (data) => {
+      if (data.chatId === selectedChat?.id) {
+        // Update messages for current chat
+        const newMessage = {
+          id: data.message._id,
+          text: data.message.text,
+          sender: (data.message.senderId?._id || data.message.senderId) === currentUser._id ? 'me' : 'them',
+          time: data.message.timestamp ? new Date(data.message.timestamp).toLocaleString() : ''
+        };
+        setMessages(prev => {
+          const existing = prev[data.chatId] || [];
+          // Check if message already exists (to avoid duplicates from optimistic updates)
+          const messageExists = existing.some(m => m.id === newMessage.id);
+          if (messageExists) {
+            // Message already exists, don't add duplicate
+            return prev;
+          }
+          
+          // Check if there's a temp message with same text from same sender (optimistic update)
+          const tempIndex = existing.findIndex(m => 
+            m.id?.startsWith('temp-') && 
+            m.text === newMessage.text && 
+            m.sender === newMessage.sender
+          );
+          
+          if (tempIndex !== -1) {
+            // Replace temp message with real one
+            const updated = [...existing];
+            updated[tempIndex] = newMessage;
+            return {
+              ...prev,
+              [data.chatId]: updated
+            };
+          }
+          
+          // New message, add it
+          return {
+            ...prev,
+            [data.chatId]: [...existing, newMessage]
+          };
+        });
+      }
+
+      // Update chat list with new last message
+      setChats(prev => prev.map(chat => {
+        if (chat.id === data.chatId) {
+          return {
+            ...chat,
+            lastMessage: data.message.text,
+            time: data.message.timestamp ? new Date(data.message.timestamp).toLocaleString() : chat.time
+          };
+        }
+        return chat;
+      }));
+    };
+
+    socket.on("chatMessage", handleChatMessage);
+
+    return () => {
+      socket.off("chatMessage", handleChatMessage);
+      if (currentChatIdRef.current) {
+        socket.emit("leaveRoom", currentChatIdRef.current);
+      }
+    };
+  }, [selectedChat, currentUser._id]);
+
+  const handleSendMessage = async () => {
     if (newMessage.trim() && selectedChat) {
-      console.log('Sending message:', newMessage);
+      const messageText = newMessage.trim();
       setNewMessage('');
+      
+      // Optimistic update - add message immediately
+      const tempMessage = {
+        id: `temp-${Date.now()}`,
+        text: messageText,
+        sender: 'me',
+        time: new Date().toLocaleString()
+      };
+      setMessages(prev => ({
+        ...prev,
+        [selectedChat.id]: [...(prev[selectedChat.id] || []), tempMessage]
+      }));
+
+      try {
+        await chatsAPI.sendMessage(selectedChat.id, messageText);
+        // The real message will come via socket, so we can remove the temp one
+        // Or we can keep it and update it when the real one arrives
+        // For now, we'll let the socket update handle it
+      } catch (e) {
+        console.error(e);
+        alert('Failed to send message');
+        // Remove optimistic message on error
+        setMessages(prev => ({
+          ...prev,
+          [selectedChat.id]: (prev[selectedChat.id] || []).filter(m => m.id !== tempMessage.id)
+        }));
+      }
     }
   };
 
@@ -386,6 +524,7 @@ const MessagesPage = () => {
                   </div>
                 </div>
               ))}
+              <div ref={messagesEndRef} />
             </div>
 
             {/* Message Input */}

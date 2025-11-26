@@ -5,6 +5,7 @@ import { auth } from "../middleware/auth.js";
 import CommunityReaction from "../models/CommunityReaction.js";
 import CommunityPost from "../models/CommunityPost.js";
 import Notification from "../models/Notification.js";
+import { getIO } from "../middleware/socket.js";
 
 const router = express.Router();
 
@@ -96,19 +97,27 @@ router.post("/:postId/react", auth(), async (req, res) => {
       { new: true, upsert: true }
     );
 
-    // ✅ Count total reactions for this post
     const totalReactions = await CommunityReaction.countDocuments({ postId: req.params.postId });
 
     // ✅ Fetch post to know which mentor owns it
     const post = await CommunityPost.findById(req.params.postId);
 
-    // ✅ If milestone reached (10, 20, 30... reactions), notify mentor
-    if (post && totalReactions % 10 === 0) {
+    if (post && totalReactions % 10 === 0 && totalReactions > 0) {
       await Notification.create({
         userId: post.mentorId,
         message: `Your post reached ${totalReactions} reactions 🎉`,
         type: "xp", // can also create new type "community"
-        link: `/community/${post.communityId}/posts/${post._id}`,
+        link: `/community-chats/${post.communityId}/posts/${post._id}`,
+        data: { postId: post._id.toString(), communityId: post.communityId.toString(), reactionCount: totalReactions },
+      });
+    }
+
+    const reactionSummary = await getReactionSummary(req.params.postId);
+    const io = getIO();
+    if (io) {
+      io.emit("communityPostReactionUpdated", {
+        postId: req.params.postId,
+        reactionSummary,
       });
     }
 

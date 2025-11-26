@@ -42,13 +42,14 @@ router.post("/", auth(), async (req, res) => {
     }
 
     // ✅ create notification for the mentor
-    const notification = new Notification({
+    const mentee = await User.findById(req.user.id).select("name");
+    await Notification.create({
       userId: mentorId,
-      message: `${req.user.id} gave you a ${rating}-star review`,
+      message: `${mentee?.name || "A mentee"} gave you a ${rating}-star review`,
       type: "rating",
       link: `/mentor/${mentorId}`,
+      data: { menteeId: req.user.id, fromName: mentee?.name || "", rating },
     });
-    await notification.save();
 
     res.json({ message: "Review added and mentor notified", review });
   } catch (err) {

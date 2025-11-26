@@ -73,4 +73,17 @@ router.get("/stats", auth(), checkAdmin(), async (req, res) => {
   }
 });
 
+router.get("/reviews", auth(), checkAdmin(), async (req, res) => {
+  try {
+    const reviews = await Review.find()
+      .populate("mentorId", "name email year role")
+      .populate("menteeId", "name email year role")
+      .sort({ timestamp: -1 });
+
+    res.json({ count: reviews.length, reviews });
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+});
+
 export default router;

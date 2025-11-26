@@ -1,7 +1,7 @@
 // UserProfilePage.jsx - View another user's profile
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { profileAPI, reviewsAPI, requestAPI } from './api';
+import { profileAPI, reviewsAPI, requestAPI, chatsAPI } from './api';
 
 const ReviewModal = ({ isOpen, onClose, onSubmit, mentorId, existingReview }) => {
   const [rating, setRating] = useState(existingReview?.rating || 0);
@@ -351,6 +351,29 @@ const UserProfilePage = () => {
                 {/* Action Buttons */}
                 {role === 'mentee' && profile.role === 'mentor' && !isOwnProfile && (
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    <button
+                      onClick={async () => {
+                        try {
+                          const chat = await chatsAPI.start(profile._id || id);
+                          // Navigate to messages and preselect this chat
+                          navigate('/messages', { state: { chatId: chat._id } });
+                        } catch (err) {
+                          console.error(err);
+                          alert(err?.message || 'Unable to start chat. Ensure your request is accepted.');
+                        }
+                      }}
+                      style={{
+                        padding: "0.75rem 1.5rem",
+                        background: "#10b981",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "8px",
+                        cursor: "pointer",
+                        fontWeight: "500"
+                      }}
+                    >
+                      💬 Start Chat
+                    </button>
                     <button
                       onClick={() => setShowReviewModal(true)}
                       style={{

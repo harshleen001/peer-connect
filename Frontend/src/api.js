@@ -44,7 +44,10 @@ export const mentorsAPI = {
 };
 
 export const recommendationsAPI = {
-  mine: () => api(`/recommendations`, "GET"), // requires auth
+  mine: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return api(`/recommendations${qs ? `?${qs}` : ""}`, "GET");
+  },
 };
 
 // ----------------- Reviews (Ratings) API -----------------
@@ -112,6 +115,47 @@ export const leaderboardAPI = {
 // ----------------- Profile API -----------------
 export const profileAPI = {
   get: (userId) => api(`/profile/${userId}`, "GET"),
+};
+
+
+// ----------------- Chats API -----------------
+export const chatsAPI = {
+  list: () => api(`/chats`, "GET"),
+  start: (mentorId) => api(`/chats/start`, "POST", { mentorId }),
+  getMessages: (chatId) => api(`/chats/${chatId}`, "GET"),
+  sendMessage: (chatId, text) => api(`/chats/${chatId}/message`, "POST", { text }),
+};
+
+// ----------------- Notifications API -----------------
+export const notificationsAPI = {
+  list: ({ page = 1, limit = 10, type, isRead } = {}) => {
+    const qs = new URLSearchParams();
+    qs.set("page", String(page));
+    qs.set("limit", String(limit));
+    if (type) qs.set("type", type);
+    if (typeof isRead === "boolean") qs.set("isRead", String(isRead));
+    const suffix = qs.toString();
+    return api(`/notifications${suffix ? `?${suffix}` : ""}`, "GET");
+  },
+  markRead: (id) => api(`/notifications/${id}/read`, "PATCH"),
+  delete: (id) => api(`/notifications/${id}`, "DELETE"),
+  clearAll: () => api(`/notifications/clear`, "DELETE"),
+  unreadCommunityCount: () => api(`/notifications/community/unread`, "GET"),
+  markCommunityRead: () => api(`/notifications/community/mark-read`, "PATCH"),
+};
+
+// ----------------- Requests API (for notification actions) -----------------
+export const requestsAPI = {
+  updateStatus: (requestId, status) => api(`/requests/${requestId}`, "PATCH", { status }),
+};
+
+export const adminAPI = {
+  login: ({ email, password }) => api(`/auth/admin/login`, "POST", { email, password }),
+  users: () => api(`/admin/users`, "GET"),
+  deleteUser: (id) => api(`/admin/users/${id}`, "DELETE"),
+  verifyMentor: (id) => api(`/admin/mentors/${id}/verify`, "PATCH"),
+  stats: () => api(`/admin/stats`, "GET"),
+  reviews: () => api(`/admin/reviews`, "GET"),
 };
 
 

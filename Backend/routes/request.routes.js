@@ -3,6 +3,8 @@ import Request from "../models/Request.js";
 import Notification from "../models/Notification.js";
 import { auth } from "../middleware/auth.js";
 import UserConnection from "../models/UserConnection.js";
+import User from "../models/User.js";
+import { getIO } from "../middleware/socket.js";
 
 
 const router = express.Router();
@@ -31,13 +33,25 @@ router.post("/:mentorId", auth(), async (req, res) => {
       mentorId,
     });
 
-    // 🔔 Notification to mentor
+    // 🔔 Notification to mentor (include mentee name & request id)
+    const mentee = await User.findById(req.user.id).select("name");
     await Notification.create({
       userId: mentorId,
-      message: "You have a new connection request",
+      message: `New mentorship request from ${mentee?.name || "a mentee"}`,
       type: "request",
       link: `/requests`,
+      data: { requestId: request._id.toString(), fromName: mentee?.name || "" },
     });
+
+    // 🔔 Emit socket event to mentee confirming request was sent
+    const io = getIO();
+    if (io) {
+      io.to(String(req.user.id)).emit("requestSent", {
+        requestId: request._id.toString(),
+        mentorId: mentorId,
+        status: "pending",
+      });
+    }
 
     res.json(request);
   } catch (err) {
@@ -95,13 +109,28 @@ router.patch("/:requestId", auth(), async (req, res) => {
       }
     }
 
-    // 🔔 Notify mentee about acceptance/rejection
+    // 🔔 Notify mentee about acceptance/rejection (include mentor name)
+    const mentor = await User.findById(request.mentorId).select("name");
     await Notification.create({
       userId: request.menteeId,
-      message: `Your connection request was ${status}`,
+      message:
+        status === "accepted"
+          ? `${mentor?.name || "Your mentor"} accepted your mentorship request`
+          : `${mentor?.name || "Your mentor"} rejected your mentorship request`,
       type: "request",
       link: `/requests`,
+      data: { requestId: request._id.toString(), fromName: mentor?.name || "" },
     });
+
+    // 🔔 Emit socket event to mentee about request status change
+    const io = getIO();
+    if (io) {
+      io.to(String(request.menteeId)).emit("requestStatusChanged", {
+        requestId: request._id.toString(),
+        mentorId: request.mentorId.toString(),
+        status: status,
+      });
+    }
 
     res.json(request);
   } catch (err) {
@@ -154,12 +183,14 @@ router.delete("/:requestId", auth(), async (req, res) => {
     // Delete the request
     await request.deleteOne();
 
-    // Optional: Notify mentor
+    // Optional: Notify mentor if mentee cancels (include mentee name)
+    const mentee = await User.findById(request.menteeId).select("name");
     await Notification.create({
       userId: request.mentorId,
-      message: `A connection request from a mentee was cancelled.`,
+      message: `Connection request from ${mentee?.name || "a mentee"} was cancelled.`,
       type: "info",
       link: `/requests`,
+      data: { requestId: request._id.toString(), fromName: mentee?.name || "" },
     });
 
     res.json({ message: "Request cancelled successfully" });
