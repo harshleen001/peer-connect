@@ -35,7 +35,7 @@ const MessageCard = ({ message, onLike, onReply }) => {
         <div className="message-meta">
           <div className="user-info">
             <span className="username">{message.user}</span>
-            <span 
+            <span
               className="message-type"
               style={{ backgroundColor: getTypeColor(message.type) }}
             >
@@ -49,13 +49,13 @@ const MessageCard = ({ message, onLike, onReply }) => {
         {message.message}
       </div>
       <div className="message-actions">
-        <button 
+        <button
           className="action-btn like-btn"
           onClick={() => onLike(message.id)}
         >
           ❤️ {message.likes}
         </button>
-        <button 
+        <button
           className="action-btn reply-btn"
           onClick={() => onReply(message.id)}
         >
@@ -128,7 +128,7 @@ const PollModal = ({ isOpen, onClose, onSave }) => {
         overflow: 'auto'
       }} onClick={(e) => e.stopPropagation()}>
         <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: '600' }}>Create Poll</h3>
-        
+
         <div style={{ marginBottom: '16px' }}>
           <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
             Poll Question
@@ -280,8 +280,8 @@ const PostComposer = ({ activeChat, onPost, disabled, onAttach, onLinkChange, li
     <div className="post-composer">
       <div className="composer-header">
         <Avatar seed="YU" />
-        <select 
-          value={postType} 
+        <select
+          value={postType}
           onChange={(e) => setPostType(e.target.value)}
           className="post-type-select"
         >
@@ -311,9 +311,9 @@ const PostComposer = ({ activeChat, onPost, disabled, onAttach, onLinkChange, li
               onChange={(e) => onLinkChange?.(e.target.value)}
               style={{ marginLeft: 8, padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 8, minWidth: 180 }}
             />
-            <button 
-              type="button" 
-              className="tool-btn" 
+            <button
+              type="button"
+              className="tool-btn"
               title="Add Poll"
               onClick={() => setShowPollModal(true)}
               style={pollData ? { background: '#dbeafe', color: '#1e40af' } : {}}
@@ -329,17 +329,17 @@ const PostComposer = ({ activeChat, onPost, disabled, onAttach, onLinkChange, li
           </div>
           <div className="composer-submit">
             <span className="keyboard-hint">Ctrl+Enter to post</span>
-            <button 
-              onClick={handleSubmit} 
+            <button
+              onClick={handleSubmit}
               className="post-btn"
-            disabled={disabled || !postContent.trim()}
+              disabled={disabled || !postContent.trim()}
             >
               Post to #{activeChat}
             </button>
           </div>
         </div>
       </div>
-      <PollModal 
+      <PollModal
         isOpen={showPollModal}
         onClose={() => setShowPollModal(false)}
         onSave={handlePollSave}
@@ -446,14 +446,14 @@ const CommunityChatsPage = () => {
       // Reload posts after deletion
       const posts = await communityPostsAPI.list(activeChat);
       setMessages(posts);
-      
+
       // Remove poll from state if exists
       if (polls[postId]) {
         const newPolls = { ...polls };
         delete newPolls[postId];
         setPolls(newPolls);
       }
-      
+
       alert('Post deleted successfully');
     } catch (err) {
       console.error(err);
@@ -465,12 +465,12 @@ const CommunityChatsPage = () => {
     try {
       const currentPoll = polls[postId];
       const hasVoted = currentPoll?.hasVoted || false;
-      
+
       // Use PATCH for re-voting, POST for first vote
-      const updatedPoll = hasVoted 
+      const updatedPoll = hasVoted
         ? await pollAPI.revote(postId, optionIndex)
         : await pollAPI.vote(postId, optionIndex);
-      
+
       // Update poll in state
       setPolls(prev => ({
         ...prev,
@@ -480,7 +480,7 @@ const CommunityChatsPage = () => {
           userVoteIndex: optionIndex
         }
       }));
-      
+
       // Reload posts to get updated data
       const posts = await communityPostsAPI.list(activeChat);
       setMessages(posts);
@@ -520,7 +520,7 @@ const CommunityChatsPage = () => {
         mediaUrl = uploadedUrl;
       }
       const createdPost = await communityPostsAPI.create(activeChat, { content: newPost.message, mediaUrl });
-      
+
       // Create poll if poll data exists
       if (createdPost && createdPost._id && newPost.pollData) {
         try {
@@ -530,7 +530,7 @@ const CommunityChatsPage = () => {
           alert('Post created but poll failed. You can add it later.');
         }
       }
-      
+
       // Redirect to post detail page after successful creation
       if (createdPost && createdPost._id) {
         navigate(`/community-chats/${activeChat}/posts/${createdPost._id}`);
@@ -554,7 +554,7 @@ const CommunityChatsPage = () => {
         if (!activeChat) return;
         const posts = await communityPostsAPI.list(activeChat);
         setMessages(posts);
-        
+
         // Load polls for posts that have them
         const postsWithPolls = posts.filter(p => p.hasPoll);
         const pollPromises = postsWithPolls.map(async (post) => {
@@ -566,7 +566,7 @@ const CommunityChatsPage = () => {
             return null;
           }
         });
-        
+
         const pollResults = await Promise.all(pollPromises);
         const pollsMap = {};
         pollResults.forEach(result => {
@@ -606,38 +606,102 @@ const CommunityChatsPage = () => {
         flexDirection: 'column'
       }}>
         {/* Header */}
-        <div style={{
-          padding: '24px 20px',
-          borderBottom: '1px solid #e2e8f0'
-        }}>
-          <h2 style={{ 
-            margin: '0 0 8px 0', 
-            fontSize: '24px', 
-            fontWeight: '700',
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent'
+          <div style={{
+            padding: '24px 20px',
+            borderBottom: '1px solid #e2e8f0'
           }}>
-            Community Chats
-          </h2>
-          <div style={{ 
-            fontSize: '14px', 
+            <h2 style={{
+              margin: '0 0 8px 0',
+              fontSize: '24px',
+              fontWeight: '700',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent'
+            }}>
+              Community Chats
+            </h2>
+
+            {/* Dynamic active members: compute from recent posts + typing indicator */}
+            {(() => {
+              const windowMs = 1000 * 60 * 60; // last 60 minutes
+              const now = Date.now();
+              const seen = new Map();
+
+              (messages || []).forEach(m => {
+                try {
+            const ts = new Date(m.createdAt || Date.now()).getTime();
+            if (now - ts <= windowMs) {
+              const id = m.mentorId?._id || m.mentorId || m.user || m._id;
+              const name = m.mentorId?.name || m.user || 'Member';
+              if (!seen.has(id)) seen.set(id, name);
+            }
+                } catch (e) {
+            /* ignore bad dates */
+                }
+              });
+
+              // include typing users as active
+              (isTyping || []).forEach((n, i) => seen.set(`typing-${i}`, n));
+
+              const activeNames = Array.from(seen.values()).slice(0, 6);
+              const totalActive = seen.size || 0;
+
+              return (
+                <div style={{
+            fontSize: '14px',
             color: '#64748b',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px'
-          }}>
-            <div style={{
-              width: '8px',
-              height: '8px',
+            gap: '12px'
+                }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {activeNames.map((name, idx) => (
+                <div
+                  key={idx}
+                  title={name}
+                  style={{
+              width: 28,
+              height: 28,
               borderRadius: '50%',
-              backgroundColor: '#10b981'
-            }} />
-            {onlineUsers} members online
-          </div>
-        </div>
+              background: '#eef2ff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#1e3a8a',
+              fontWeight: 700,
+              fontSize: 12,
+              boxShadow: '0 1px 4px rgba(16,24,40,0.06)'
+                  }}
+                >
+                  {String(name).split(' ').map(p => p[0]).slice(0,2).join('')}
+                </div>
+              ))}
+              {totalActive > activeNames.length && (
+                <div style={{
+                  fontSize: 12,
+                  color: '#94a3b8',
+                  marginLeft: 4
+                }}>
+                  +{totalActive - activeNames.length}
+                </div>
+              )}
+            </div>
 
-        {/* Search */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                backgroundColor: totalActive > 0 ? '#10b981' : '#9ca3af'
+              }} />
+              <div>{totalActive} members online</div>
+            </div>
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* Search */}
         <div style={{ padding: '16px 20px' }}>
           <input
             type="text"
@@ -757,11 +821,30 @@ const CommunityChatsPage = () => {
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
             <span>Total Messages Today</span>
-            <span style={{ fontWeight: '600' }}>247</span>
+            <span style={{ fontWeight: '600' }}>
+              {
+                (messages || []).filter(m => {
+                  try {
+                    return new Date(m.createdAt || Date.now()).toDateString() === new Date().toDateString();
+                  } catch {
+                    return false;
+                  }
+                }).length
+              }
+            </span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span>Active Mentors</span>
-            <span style={{ fontWeight: '600' }}>12</span>
+            <span style={{ fontWeight: '600' }}>
+              {
+                new Set(
+                  ([...(myCommunities || []), ...(discoverCommunities || [])]
+                    .map(c => c?.mentorId?._id || c?.mentorId)
+                    .filter(Boolean)
+                  )
+                ).size
+              }
+            </span>
           </div>
         </div>
       </div>
@@ -786,17 +869,17 @@ const CommunityChatsPage = () => {
             }}
           />
           <div style={{ flex: 1 }}>
-            <h3 style={{ 
-              margin: 0, 
-              fontSize: '20px', 
+            <h3 style={{
+              margin: 0,
+              fontSize: '20px',
               fontWeight: '600',
               color: '#1f2937'
             }}>
               #{activeChatter?.name || 'Select a community'}
             </h3>
-            <p style={{ 
-              margin: '2px 0 0 0', 
-              fontSize: '14px', 
+            <p style={{
+              margin: '2px 0 0 0',
+              fontSize: '14px',
               color: '#64748b'
             }}>
               {activeChatter?.description} • {(activeChatter?.members || []).length} members • {filteredMessages.length} messages
@@ -847,10 +930,10 @@ const CommunityChatsPage = () => {
               disabled={!activeChatter}
             />
           )}
-          
+
           {filteredMessages.map(message => (
-            <div 
-              key={message._id} 
+            <div
+              key={message._id}
               className="message-card"
               style={{ cursor: 'pointer' }}
               onClick={(e) => {
@@ -862,7 +945,7 @@ const CommunityChatsPage = () => {
               }}
             >
               <div className="message-header">
-                <div 
+                <div
                   className="avatar"
                   onClick={(e) => {
                     e.stopPropagation();
@@ -872,11 +955,11 @@ const CommunityChatsPage = () => {
                   }}
                   style={{ cursor: 'pointer' }}
                 >
-                  {(message.mentorId?.name || 'M').split(' ').map(n => n[0]).slice(0,2).join('')}
+                  {(message.mentorId?.name || 'M').split(' ').map(n => n[0]).slice(0, 2).join('')}
                 </div>
                 <div className="message-meta">
                   <div className="user-info">
-                    <span 
+                    <span
                       className="username"
                       onClick={(e) => {
                         e.stopPropagation();
@@ -898,18 +981,18 @@ const CommunityChatsPage = () => {
                 {message.mediaUrl && (
                   message.mediaUrl.match(/\.(png|jpe?g|gif|webp)$/i) ? (
                     <div style={{ marginTop: 8, display: 'flex', justifyContent: 'center' }}>
-                      <img 
-                        src={getFullUrl(message.mediaUrl)} 
-                        alt="attachment" 
-                        style={{ 
-                          maxWidth: '400px', 
+                      <img
+                        src={getFullUrl(message.mediaUrl)}
+                        alt="attachment"
+                        style={{
+                          maxWidth: '400px',
                           maxHeight: '300px',
                           width: 'auto',
                           height: 'auto',
-                          borderRadius: 8, 
+                          borderRadius: 8,
                           border: '1px solid #e2e8f0',
                           objectFit: 'contain'
-                        }} 
+                        }}
                       />
                     </div>
                   ) : message.mediaUrl.match(/\.pdf$/i) ? (
@@ -918,11 +1001,11 @@ const CommunityChatsPage = () => {
                         <span style={{ fontSize: '20px' }}>📄</span>
                         <span style={{ fontSize: '14px', color: '#64748b' }}>PDF Document</span>
                       </div>
-                      <a 
-                        href={getFullUrl(message.mediaUrl)} 
-                        target="_blank" 
-                        rel="noreferrer" 
-                        style={{ 
+                      <a
+                        href={getFullUrl(message.mediaUrl)}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{
                           color: '#2563eb',
                           textDecoration: 'none',
                           fontWeight: '500',
@@ -937,10 +1020,10 @@ const CommunityChatsPage = () => {
                     </div>
                   ) : (
                     <div style={{ marginTop: 8 }}>
-                      <a 
-                        href={getFullUrl(message.mediaUrl)} 
-                        target="_blank" 
-                        rel="noreferrer" 
+                      <a
+                        href={getFullUrl(message.mediaUrl)}
+                        target="_blank"
+                        rel="noreferrer"
                         style={{ color: '#2563eb' }}
                         onClick={(e) => e.stopPropagation()}
                       >
@@ -949,12 +1032,12 @@ const CommunityChatsPage = () => {
                     </div>
                   )
                 )}
-                
+
                 {/* Poll Display */}
                 {message.hasPoll && polls[message._id] && (
-                  <div 
-                    data-poll 
-                    onClick={(e) => e.stopPropagation()} 
+                  <div
+                    data-poll
+                    onClick={(e) => e.stopPropagation()}
                     style={{
                       marginTop: '16px',
                       padding: '16px',
@@ -979,15 +1062,15 @@ const CommunityChatsPage = () => {
                         {polls[message._id].question}
                       </h4>
                     </div>
-                    
+
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       {polls[message._id].options.map((option, index) => {
-                        const percentage = polls[message._id].totalVotes > 0 
-                          ? Math.round((option.count / polls[message._id].totalVotes) * 100) 
+                        const percentage = polls[message._id].totalVotes > 0
+                          ? Math.round((option.count / polls[message._id].totalVotes) * 100)
                           : 0;
                         const isSelected = polls[message._id].userVoteIndex === index;
                         const hasVoted = polls[message._id].hasVoted;
-                        
+
                         return (
                           <div key={index}>
                             {/* For mentees: show clickable buttons if not voted, or if voted show clickable options with results */}
@@ -1111,7 +1194,7 @@ const CommunityChatsPage = () => {
                         );
                       })}
                     </div>
-                    
+
                     <div style={{
                       marginTop: '12px',
                       fontSize: '12px',
@@ -1135,8 +1218,8 @@ const CommunityChatsPage = () => {
               {/* Delete button for mentors (only on their own posts) */}
               {role === 'mentor' && String(message.mentorId?._id || message.mentorId) === String(user?._id) && (
                 <div className="message-actions" onClick={(e) => e.stopPropagation()}>
-                  <button 
-                    className="action-btn delete-btn" 
+                  <button
+                    className="action-btn delete-btn"
                     onClick={() => handleDeletePost(message._id)}
                     style={{
                       background: '#fef2f2',
@@ -1148,7 +1231,7 @@ const CommunityChatsPage = () => {
                   </button>
                 </div>
               )}
-              
+
               {/* Reaction buttons for mentees */}
               {role === 'mentee' && (
                 <div className="message-actions" onClick={(e) => e.stopPropagation()}>
@@ -1189,9 +1272,9 @@ const CommunityChatsPage = () => {
                   )}
                 </div>
               )}
-              <div style={{ 
-                marginTop: '12px', 
-                fontSize: '12px', 
+              <div style={{
+                marginTop: '12px',
+                fontSize: '12px',
                 color: '#64748b',
                 display: 'flex',
                 alignItems: 'center',
@@ -1201,7 +1284,7 @@ const CommunityChatsPage = () => {
               </div>
             </div>
           ))}
-          
+
           {/* Typing Indicator */}
           {isTyping.length > 0 && (
             <div style={{
@@ -1215,7 +1298,7 @@ const CommunityChatsPage = () => {
               {isTyping.join(', ')} {isTyping.length === 1 ? 'is' : 'are'} typing...
             </div>
           )}
-          
+
           <div ref={messagesEndRef} />
         </div>
       </div>
