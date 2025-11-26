@@ -52,14 +52,14 @@ function StudentRegistrationPage() {
     fieldOfStudy: "",
     yearOfStudy: "",
     areasOfInterest: [],
-    careerGoals: "",
-    learningObjectives: "",
+    
+    learningObjectivesTags: [],
     currentSkills: [],
     experience: "",
     projects: "",
     preferredMentorshipStyle: "",
     availability: [],
-    timeZone: "",
+    careerGoalsTags: [],
     mentorAbout: "", // Extra field for mentor-only
   });
 
@@ -67,13 +67,62 @@ function StudentRegistrationPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const areasOfInterestOptions = [
-    "Web Development", "Mobile Development", "Data Science", "Machine Learning", "AI",
-    "Backend Development", "Frontend Development", "DevOps", "Cybersecurity", "Cloud Computing",
-    "UI/UX Design", "Product Management", "Business Strategy",
+    "Web Development","Frontend Development","Backend Development","Full-Stack","Mobile (Android)","Mobile (iOS)","Cross‑Platform (Flutter/React Native)",
+    "Data Science","Machine Learning","Deep Learning","AI/LLMs","Computer Vision","NLP",
+    "Cloud Computing","DevOps","SRE","Kubernetes","AWS","Azure","GCP",
+    "Cybersecurity","Blockchain","Web3","AR/VR","Game Development","IoT",
+    "Databases","Big Data","Distributed Systems","System Design","Networking",
+    "UI/UX Design","Product Management","Business Strategy","Entrepreneurship",
+    "Open Source","Competitive Programming","Research","Startups","Freelancing"
   ];
-  const skillOptions = [
-    "JavaScript", "Python", "Java", "React", "Node.js", "SQL", "Git",
-    "HTML/CSS", "TypeScript", "MongoDB", "AWS", "Docker",
+  const allSkills = [
+    // Languages
+    "C","C++","C#","Java","JavaScript","JS","TypeScript","TS","Python","Py","Go","Golang","Rust","Kotlin","Swift","Objective‑C","PHP","Ruby","Scala","Haskell","Elixir","Dart","R","MATLAB","Perl",
+    // Web Frontend
+    "HTML","CSS","Sass","Less","TailwindCSS","Bootstrap","Material UI","Styled Components",
+    "React","ReactJS","Next.js","NextJS","Vue","Vue.js","Nuxt.js","Angular","AngularJS","Svelte","SolidJS","Redux","Redux Toolkit","MobX","Zustand","RxJS","jQuery",
+    // Web Backend
+    "Node.js","NodeJS","Express","Express.js","NestJS","Fastify","Koa","Hapi","Deno","Bun",
+    "Spring","Spring Boot","Quarkus","Micronaut","Hibernate",
+    "Django","Flask","FastAPI","Pyramid","Tornado",
+    "Laravel","Symfony","CodeIgniter","Rails","Phoenix",
+    // Mobile
+    "Android","iOS","React Native","Flutter","Ionic","Cordova",
+    // Databases
+    "SQL","PostgreSQL","Postgres","MySQL","MariaDB","SQLite","Oracle","SQL Server","MSSQL",
+    "MongoDB","Redis","Memcached","Cassandra","Elasticsearch","Solr","Neo4j","DynamoDB","Cosmos DB","Firestore","Firebase","Supabase","Bigtable","ClickHouse","Snowflake","Redshift",
+    // Data/ML/AI
+    "Data Analysis","Pandas","NumPy","SciPy","Matplotlib","Seaborn","Plotly","Polars",
+    "scikit‑learn","TensorFlow","Keras","PyTorch","XGBoost","LightGBM","CatBoost","ONNX","OpenVINO",
+    "NLP","spaCy","NLTK","Transformers","BERT","GPT","LangChain","Haystack",
+    "Computer Vision","OpenCV","Detectron2","YOLO","MediaPipe",
+    // Cloud/DevOps
+    "AWS","Amazon Web Services","Azure","GCP","Google Cloud","DigitalOcean","Linode",
+    "Docker","Kubernetes","K8s","Helm","Compose","Podman","containerd",
+    "Terraform","Pulumi","Ansible","Chef","Puppet","SaltStack",
+    "Serverless","Lambda","CloudFront","Route 53","RDS","ECS","EKS","Cloud Run","Cloud Functions","GKE","App Service","Blob Storage","Azure Functions","Firebase","Supabase",
+    "CI/CD","GitHub Actions","GitLab CI","CircleCI","Jenkins","Travis CI","ArgoCD","Spinnaker",
+    // APIs/Protocols
+    "REST","REST APIs","GraphQL","gRPC","SOAP","WebSockets","Socket.IO","Server‑Sent Events","tRPC","HTTP","HTTP/2","HTTP/3","QUIC",
+    // Testing/Quality
+    "Testing","Jest","Vitest","Mocha","Chai","AVA","Cypress","Playwright","Selenium","Puppeteer",
+    "PyTest","JUnit","TestNG","RSpec","Cucumber",
+    // Security
+    "OAuth2","OIDC","JWT","SSO","TLS","SSL","HTTPS","CORS","CSRF","XSS","OWASP","Pen Testing","Security Auditing",
+    // Architecture/Patterns
+    "System Design","Microservices","Event‑Driven","CQRS","DDD","Monorepo","Code Generation",
+    // Messaging/Streaming
+    "Kafka","RabbitMQ","NATS","SQS","SNS","Pub/Sub",
+    // Observability
+    "Prometheus","Grafana","ELK","Elastic Stack","Kibana","Logstash","Loki","Splunk","OpenTelemetry","OTel","Jaeger","New Relic","Datadog","CloudWatch","Stackdriver","Sentry",
+    // Performance/Scaling
+    "Caching","CDN","Load Balancing","Performance Optimization","Profiling",
+    // Build Tools
+    "Webpack","Vite","Rollup","Parcel","Babel","ESLint","Prettier",
+    // Design/PM
+    "Figma","Adobe XD","Sketch","Canva","Product Management","Agile","Scrum","Kanban",
+    // Other
+    "IoT","Blockchain","Web3","AR","VR","XR","Robotics","GIS","Bioinformatics"
   ];
   const availabilityOptions = [
     "Weekday Mornings", "Weekday Afternoons", "Weekday Evenings",
@@ -82,8 +131,15 @@ function StudentRegistrationPage() {
   const mentorshipStyles = [
     "Regular 1-on-1 Sessions", "Group Mentoring", "Flexible / Ad-hoc", "Project-based",
   ];
-  const timeZones = [
-    "IST (UTC+5:30)", "EST (UTC-5)", "PST (UTC-8)", "GMT (UTC+0)", "CET (UTC+1)",
+
+  const careerGoalsOptions = [
+    "Job‑ready in 6–12 months","Internship preparation","Higher studies/MS","Crack FAANG/MAANG","Startup/Entrepreneurship",
+    "Open‑source contributor","Research publications","Freelancing","Leadership/PM","Switch to tech"
+  ];
+  const learningObjectivesOptions = [
+    "Build production‑grade web apps","Master data structures/algorithms","System design fundamentals",
+    "Deploy to cloud (AWS/Azure/GCP)","End‑to‑end DevOps (CI/CD)","Security best practices",
+    "Ship a mobile app","Contribute to OSS","Publish a portfolio project"
   ];
 
   const nameInputRef = useRef(null);
@@ -156,7 +212,9 @@ function StudentRegistrationPage() {
       if (formData.areasOfInterest.length === 0) {
         newErrors.areasOfInterest = "Select at least one area of interest";
       }
-      if (!formData.careerGoals.trim()) newErrors.careerGoals = "Career goals are required";
+      if (!formData.careerGoalsTags || formData.careerGoalsTags.length === 0) {
+        newErrors.careerGoalsTags = "Select at least one career goal";
+      }
       if (role === "mentor" && !formData.mentorAbout.trim()) {
         newErrors.mentorAbout = "Please describe your mentoring background";
       }
@@ -177,7 +235,7 @@ function StudentRegistrationPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
- const handleSubmit = async (e) => {
+  const handleSubmit = async (e) => {
   e.preventDefault();
   if (!validateStep(4)) return;
   setIsSubmitting(true);
@@ -190,13 +248,17 @@ function StudentRegistrationPage() {
     year: formData.yearOfStudy || "Other",
     branch: formData.fieldOfStudy,
     phone: formData.phone,
-    bio: formData.careerGoals,
     skills: formData.currentSkills,
     interests: formData.areasOfInterest,
     achievements: formData.projects,
     address: formData.address || "",
     resumeLink: formData.resumeLink || "",
     profilePicture: formData.profilePicture || "",
+    learningObjectives: formData.learningObjectivesTags,
+    availability: formData.availability,
+    experienceLevel: formData.experience || "",
+    careerGoalsTags: formData.careerGoalsTags,
+    preferredMentorshipStyle: formData.preferredMentorshipStyle || "",
   };
 
   try {
@@ -218,32 +280,111 @@ function StudentRegistrationPage() {
 
 
   // UI helpers (TextArea, MultiSelectChips, SelectField, ProgressBar)
-  const TextArea = ({ label, name, required = false, ...props }) => (
-    <div style={{ marginBottom: "20px" }}>
-      <label style={{
-        display: "block", marginBottom: "8px", color: "#1e293b", fontWeight: "500", fontSize: "14px"
-      }}>
-        {label} {required && <span style={{ color: "#ef4444" }}>*</span>}
-      </label>
-      <textarea
-        name={name}
-        value={formData[name]}
-        onChange={handleChange}
-        style={{
-          width: "100%", padding: "12px 16px",
-          border: errors[name] ? "2px solid #ef4444" : "1px solid #e2e8f0",
-          borderRadius: "8px", fontSize: "14px", outline: "none",
-          minHeight: "100px", resize: "vertical", fontFamily: "inherit",
-        }}
-        {...props}
-      />
-      {errors[name] && (
-        <p style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px" }}>
-          {errors[name]}
-        </p>
-      )}
-    </div>
-  );
+  const TextArea = ({ label, name, required = false, ...props }) => {
+    const [val, setVal] = useState(formData[name] || "");
+    const onChange = (e) => {
+      setVal(e.target.value);
+      handleChange(e);
+    };
+    return (
+      <div style={{ marginBottom: "20px" }}>
+        <label style={{
+          display: "block", marginBottom: "8px", color: "#1e293b", fontWeight: "500", fontSize: "14px"
+        }}>
+          {label} {required && <span style={{ color: "#ef4444" }}>*</span>}
+        </label>
+        <textarea
+          name={name}
+          value={val}
+          onChange={onChange}
+          style={{
+            width: "100%", padding: "12px 16px",
+            border: errors[name] ? "2px solid #ef4444" : "1px solid #e2e8f0",
+            borderRadius: "8px", fontSize: "14px", outline: "none",
+            minHeight: "100px", resize: "vertical", fontFamily: "inherit",
+          }}
+          {...props}
+        />
+        {errors[name] && (
+          <p style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px" }}>
+            {errors[name]}
+          </p>
+        )}
+      </div>
+    );
+  };
+
+  const SkillInput = () => {
+    const [query, setQuery] = useState("");
+    const inputRef = useRef(null);
+    const suggestions = allSkills.filter(
+      (s) => s.toLowerCase().includes(query.toLowerCase()) && !formData.currentSkills.includes(s)
+    ).slice(0, 10);
+    const addSkill = (skill) => {
+      const canonical = allSkills.find((s) => s.toLowerCase() === skill.toLowerCase()) || skill;
+      setFormData((prev) => ({ ...prev, currentSkills: [...prev.currentSkills, canonical] }));
+      setQuery("");
+      inputRef.current?.focus();
+    };
+    const removeSkill = (skill) => {
+      setFormData((prev) => ({ ...prev, currentSkills: prev.currentSkills.filter((x) => x !== skill) }));
+      inputRef.current?.focus();
+    };
+    const onKeyDown = (e) => {
+      if (e.key === "Enter" && query.trim()) {
+        e.preventDefault();
+        addSkill(query.trim());
+      }
+      if (e.key === "Backspace" && !query && formData.currentSkills.length) {
+        removeSkill(formData.currentSkills[formData.currentSkills.length - 1]);
+      }
+    };
+    return (
+      <div style={{ marginBottom: 20 }}>
+        <label style={{ display: "block", marginBottom: 8, color: "#1e293b", fontWeight: 500, fontSize: 14 }}>
+          Current Skills
+        </label>
+        <div style={{
+          border: "1px solid #e2e8f0", borderRadius: 8, padding: 8,
+          display: "flex", flexWrap: "wrap", gap: 8
+        }}>
+          {formData.currentSkills.map((s) => (
+            <span key={s} style={{
+              background: "#eef2ff", color: "#4f46e5", border: "1px solid #c7d2fe",
+              padding: "6px 10px", borderRadius: 16, display: "inline-flex", alignItems: "center", gap: 6
+            }}>
+              {s}
+              <button type="button" onMouseDown={(e)=>e.preventDefault()} onClick={() => removeSkill(s)} style={{
+                border: "none", background: "transparent", color: "#4f46e5", cursor: "pointer"
+              }}>✕</button>
+            </span>
+          ))}
+          <input
+            ref={inputRef}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={onKeyDown}
+            placeholder="Type to add skills (Enter to add)"
+            style={{ flex: 1, minWidth: 160, border: "none", outline: "none", padding: "8px" }}
+          />
+        </div>
+        {query && suggestions.length > 0 && (
+          <div style={{
+            border: "1px solid #e2e8f0", borderRadius: 8, marginTop: 6, background: "white", boxShadow: "0 4px 12px rgba(0,0,0,0.08)"
+          }}>
+            {suggestions.map((sug) => (
+              <div key={sug}
+                onMouseDown={(e)=>e.preventDefault()}
+                onClick={() => addSkill(sug)}
+                style={{ padding: "8px 12px", cursor: "pointer" }}>
+                {sug}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   const SelectField = ({ label, name, options, required = false }) => (
     <div style={{ marginBottom: "20px" }}>
@@ -291,15 +432,16 @@ function StudentRegistrationPage() {
         borderRadius: "8px", minHeight: "50px",
       }}>
         {options.map((option) => (
-          <button
-            key={option}
-            type="button"
-            onClick={() => handleMultiSelect(field, option)}
-            style={{
-              padding: "8px 16px", borderRadius: "20px", border: "none",
-              cursor: "pointer", fontSize: "13px", fontWeight: "500",
-              transition: "all 0.2s ease",
-              background: formData[field].includes(option)
+            <button
+              key={option}
+              type="button"
+              onClick={() => handleMultiSelect(field, option)}
+              onMouseDown={(e) => e.preventDefault()}
+              style={{
+                padding: "8px 16px", borderRadius: "20px", border: "none",
+                cursor: "pointer", fontSize: "13px", fontWeight: "500",
+                transition: "all 0.2s ease",
+                background: formData[field].includes(option)
                 ? "linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
                 : "#f1f5f9",
               color: formData[field].includes(option) ? "white" : "#475569",
@@ -578,17 +720,17 @@ function StudentRegistrationPage() {
                 field="areasOfInterest"
                 required
               />
-              <TextArea
-                label="Career Goals"
-                name="careerGoals"
-                required
-                placeholder="What are your career aspirations? What do you want to achieve?"
+              <MultiSelectChips
+                label="Career Goals (select many)"
+                options={careerGoalsOptions}
+                field="careerGoalsTags"
               />
-              <TextArea
-                label="Learning Objectives"
-                name="learningObjectives"
-                placeholder="What specific skills or knowledge do you want to gain?"
+              <MultiSelectChips
+                label="Learning Objectives (select many)"
+                options={learningObjectivesOptions}
+                field="learningObjectivesTags"
               />
+              
               {/* Mentor-only field */}
               {role === "mentor" && (
                 <TextArea
@@ -609,11 +751,7 @@ function StudentRegistrationPage() {
               }}>
                 Skills & Preferences
               </h2>
-              <MultiSelectChips
-                label="Current Skills"
-                options={skillOptions}
-                field="currentSkills"
-              />
+              <SkillInput />
               <SelectField
                 label="Experience Level"
                 name="experience"
@@ -633,11 +771,6 @@ function StudentRegistrationPage() {
                 label="Availability"
                 options={availabilityOptions}
                 field="availability"
-              />
-              <SelectField
-                label="Time Zone"
-                name="timeZone"
-                options={timeZones}
               />
             </div>
           )}

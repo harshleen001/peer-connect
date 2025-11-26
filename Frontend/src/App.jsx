@@ -15,208 +15,18 @@ import CommunityChatsPage from "./CommunityChatsPage.jsx";
 import PostDetailPage from "./PostDetailPage.jsx";
 import UserProfilePage from "./UserProfilePage.jsx";
 import AdminManagementPage from "./AdminManagementPage.jsx";
+import AdminLoginPage from "./AdminLoginPage.jsx";
 import StudentRegistrationPage from "./StudentRegistrationPage.jsx"; // ✅ ADDED
 import Dashboard from "./Dashboard.jsx";
 import ProtectedRoute from "./ProtectedRoute.jsx";
 import MenteeDashboard from "./MenteeDashboard.jsx";
 import MentorDashboard from "./MentorDashboard.jsx";
+import { notificationsAPI } from "./api";
+import RecommendedMentorsPage from "./RecommendedMentorsPage.jsx";
+import HelpPage from "./HelpPage.jsx";
+import SettingsPage from "./SettingsPage.jsx";
+import ReportHistoryPage from "./ReportHistoryPage.jsx";
 
-// ----------------- Initial Notifications -----------------
-const initialNotifications = [
-  {
-    id: 1,
-    studentName: "Rohit Sharma",
-    studentAvatar: "RS",
-    subject: "React Development Mentoring",
-    message: "Hi! I'm looking for guidance on React hooks and state management.",
-    timestamp: "2 hours ago",
-    status: "pending",
-  },
-  {
-    id: 2,
-    studentName: "Priya Patel",
-    studentAvatar: "PP",
-    subject: "Career Transition to Tech",
-    message: "I'm transitioning from marketing to frontend development.",
-    timestamp: "5 hours ago",
-    status: "pending",
-  },
-  {
-    id: 3,
-    studentName: "Arjun Gupta",
-    studentAvatar: "AG",
-    subject: "Machine Learning Project Help",
-    message: "Need help with feature engineering and model selection.",
-    timestamp: "1 day ago",
-    status: "pending",
-  },
-  {
-    id: 4,
-    studentName: "Sneha Reddy",
-    studentAvatar: "SR",
-    subject: "Backend Development Query",
-    message: "Need help understanding microservices and API versioning.",
-    timestamp: "2 days ago",
-    status: "accepted",
-  },
-];
-
-// ----------------- Global Logout Button -----------------
-function LogoutButton() {
-  const navigate = useNavigate();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-  useEffect(() => {
-    const checkLoginStatus = () => {
-      const loginStatus = localStorage.getItem("isLoggedIn");
-      setIsLoggedIn(loginStatus === "true");
-    };
-
-    checkLoginStatus();
-    window.addEventListener("storage", checkLoginStatus);
-    const interval = setInterval(checkLoginStatus, 1000);
-
-    return () => {
-      window.removeEventListener("storage", checkLoginStatus);
-      clearInterval(interval);
-    };
-  }, []);
-
-  const handleLogout = () => {
-    if (window.confirm("Are you sure you want to logout?")) {
-      localStorage.removeItem("isLoggedIn");
-      localStorage.removeItem("isAdmin");
-     
-      localStorage.removeItem("role");
-      localStorage.removeItem("user");
-      localStorage.removeItem("userName");
-      setIsLoggedIn(false);
-      alert("Logged out successfully! 👋");
-      // notify auth change
-      window.dispatchEvent(new Event("auth-updated"));
-      navigate("/login");
-    }
-  };
-
-  if (!isLoggedIn) return null;
-
-  return (
-    <button
-      onClick={handleLogout}
-      style={{
-        position: "fixed",
-        bottom: "20px",
-        right: "20px",
-        backgroundColor: "#ff4757",
-        color: "white",
-        border: "none",
-        borderRadius: "50px",
-        padding: "12px 20px",
-        fontSize: "14px",
-        fontWeight: "600",
-        cursor: "pointer",
-        boxShadow: "0 4px 12px rgba(255, 71, 87, 0.3)",
-        zIndex: 1000,
-        transition: "all 0.3s ease",
-        display: "flex",
-        alignItems: "center",
-        gap: "8px",
-      }}
-      onMouseOver={(e) => {
-        e.target.style.backgroundColor = "#ff3742";
-        e.target.style.transform = "translateY(-2px)";
-        e.target.style.boxShadow = "0 6px 16px rgba(255, 71, 87, 0.4)";
-      }}
-      onMouseOut={(e) => {
-        e.target.style.backgroundColor = "#ff4757";
-        e.target.style.transform = "translateY(0)";
-        e.target.style.boxShadow = "0 4px 12px rgba(255, 71, 87, 0.3)";
-      }}
-    >
-      <span>🚪</span> Logout
-    </button>
-  );
-}
-
-// Admin Access Button (appears when logged in)
-function AdminAccessButton() {
-  const navigate = useNavigate();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  useEffect(() => {
-    const checkStatus = () => {
-      const loginStatus = localStorage.getItem("isLoggedIn");
-      const adminStatus = localStorage.getItem("isAdmin");
-      setIsLoggedIn(loginStatus === "true");
-      setIsAdmin(adminStatus === "true");
-    };
-
-    checkStatus();
-    window.addEventListener("storage", checkStatus);
-    const interval = setInterval(checkStatus, 1000);
-
-    return () => {
-      window.removeEventListener("storage", checkStatus);
-      clearInterval(interval);
-    };
-  }, []);
-
-  const handleAdminAccess = () => {
-    if (isAdmin) {
-      navigate("/admin");
-    } else {
-      const password = prompt("🔐 Enter Admin Password:");
-      if (password === "admin123") {
-        localStorage.setItem("isAdmin", "true");
-        setIsAdmin(true);
-        alert("✅ Admin access granted!");
-        navigate("/admin");
-      } else if (password !== null) {
-        alert("❌ Invalid password!");
-      }
-    }
-  };
-
-  if (!isLoggedIn) return null;
-
-  return (
-    <button
-      onClick={handleAdminAccess}
-      style={{
-        position: "fixed",
-        bottom: "20px",
-        right: "140px",
-        backgroundColor: isAdmin ? "#10b981" : "#667eea",
-        color: "white",
-        border: "none",
-        borderRadius: "50px",
-        padding: "12px 20px",
-        fontSize: "14px",
-        fontWeight: "600",
-        cursor: "pointer",
-        boxShadow: isAdmin ? "0 4px 12px rgba(16, 185, 129, 0.3)" : "0 4px 12px rgba(102, 126, 234, 0.3)",
-        zIndex: 1000,
-        transition: "all 0.3s ease",
-        display: "flex",
-        alignItems: "center",
-        gap: "8px",
-      }}
-      onMouseOver={(e) => {
-        e.target.style.backgroundColor = isAdmin ? "#059669" : "#5568d3";
-        e.target.style.transform = "translateY(-2px)";
-        e.target.style.boxShadow = isAdmin ? "0 6px 16px rgba(16, 185, 129, 0.4)" : "0 6px 16px rgba(102, 126, 234, 0.4)";
-      }}
-      onMouseOut={(e) => {
-        e.target.style.backgroundColor = isAdmin ? "#10b981" : "#667eea";
-        e.target.style.transform = "translateY(0)";
-        e.target.style.boxShadow = isAdmin ? "0 4px 12px rgba(16, 185, 129, 0.3)" : "0 4px 12px rgba(102, 126, 234, 0.3)";
-      }}
-    >
-      <span>{isAdmin ? "🛡️" : "🔐"}</span> {isAdmin ? "Admin Panel" : "Admin Login"}
-    </button>
-  );
-}
 
 // Protected Route Component for Admin
 function ProtectedAdminRoute({ children }) {
@@ -378,21 +188,8 @@ function DashboardContent() {
 
 // ----------------- Main App -----------------
 function App() {
-  const [notifications, setNotifications] = useState(initialNotifications);
+  const [pendingCount, setPendingCount] = useState(0);
   const [authVersion, setAuthVersion] = useState(0);
-  const pendingCount = notifications.filter((n) => n.status === "pending").length;
-
-  const handleAccept = (id) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, status: "accepted" } : n))
-    );
-  };
-
-  const handleReject = (id) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, status: "rejected" } : n))
-    );
-  };
 
   // React to auth updates (login/logout) to re-render dashboard selection immediately
   useEffect(() => {
@@ -404,6 +201,28 @@ function App() {
       window.removeEventListener("storage", bump);
     };
   }, []);
+
+  useEffect(() => {
+    const refreshPending = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setPendingCount(0);
+        return;
+      }
+      try {
+        const res = await notificationsAPI.list({ page: 1, limit: 1, isRead: false });
+        setPendingCount(res.totalNotifications || 0);
+      } catch (err) {
+        console.error("Failed to fetch notifications", err);
+      }
+    };
+
+    refreshPending();
+    window.addEventListener("notifications-updated", refreshPending);
+    return () => {
+      window.removeEventListener("notifications-updated", refreshPending);
+    };
+  }, [authVersion]);
 
   return (
     <Router>
@@ -469,11 +288,7 @@ function App() {
             path="/notifications"
             element={
               <PageLayout notificationCount={pendingCount}>
-                <NotificationsPage
-                  notifications={notifications}
-                  onAccept={handleAccept}
-                  onReject={handleReject}
-                />
+                <NotificationsPage />
               </PageLayout>
             }
           />
@@ -524,6 +339,16 @@ function App() {
               </PageLayout>
             }
           />
+          <Route
+            path="/mentors/recommended"
+            element={
+              <ProtectedRoute>
+                <PageLayout notificationCount={pendingCount}>
+                  <RecommendedMentorsPage />
+                </PageLayout>
+              </ProtectedRoute>
+            }
+          />
 
           {/* Admin Route with Protection */}
           <Route
@@ -537,6 +362,8 @@ function App() {
             }
           />
 
+          <Route path="/admin-login" element={<AdminLoginPage />} />
+
           {/* ✅ ADDED - Student Registration Route */}
           <Route
             path="/register"
@@ -547,33 +374,28 @@ function App() {
           <Route
             path="/settings"
             element={
-              <PageLayout notificationCount={pendingCount}>
-                <SimplePage
-                  title="Settings"
-                  description="Configure your account preferences here."
-                />
-              </PageLayout>
+              <ProtectedRoute>
+                <PageLayout notificationCount={pendingCount}>
+                  <SettingsPage />
+                </PageLayout>
+              </ProtectedRoute>
             }
           />
           <Route
             path="/report-history"
             element={
-              <PageLayout notificationCount={pendingCount}>
-                <SimplePage
-                  title="Report History"
-                  description="View your mentoring reports and history."
-                />
-              </PageLayout>
+              <ProtectedRoute>
+                <PageLayout notificationCount={pendingCount}>
+                  <ReportHistoryPage />
+                </PageLayout>
+              </ProtectedRoute>
             }
           />
           <Route
             path="/help"
             element={
               <PageLayout notificationCount={pendingCount}>
-                <SimplePage
-                  title="Help & Support"
-                  description="Find answers to common questions and get support."
-                />
+                <HelpPage />
               </PageLayout>
             }
           />
@@ -592,10 +414,6 @@ function App() {
           {/* Login */}
           <Route path="/login" element={<LoginPage />} />
         </Routes>
-
-        {/* Global Buttons */}
-        <AdminAccessButton />
-        <LogoutButton />
       </div>
     </Router>
   );

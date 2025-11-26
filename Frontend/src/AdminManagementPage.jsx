@@ -1,12 +1,9 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { adminAPI } from "./api";
 
 // Initial mock data
-const initialUsers = [
-  { id: 1, name: "Rohit Sharma", email: "rohit@example.com", role: "Student", status: "Active", joinDate: "2024-01-15" },
-  { id: 2, name: "Priya Patel", email: "priya@example.com", role: "Student", status: "Active", joinDate: "2024-02-20" },
-  { id: 3, name: "Harshleen Kaur", email: "harshleen@example.com", role: "Mentor", status: "Active", joinDate: "2023-11-10" },
-  { id: 4, name: "Manraj Singh", email: "manraj@example.com", role: "Mentor", status: "Active", joinDate: "2023-12-05" },
-];
+const initialUsers = [];
 
 const initialActivities = [
   { id: 1, user: "Rohit Sharma", action: "Sent message to mentor", timestamp: new Date().toISOString(), type: "message" },
@@ -16,6 +13,7 @@ const initialActivities = [
 ];
 
 function AdminManagementPage() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [users, setUsers] = useState(initialUsers);
   const [activities, setActivities] = useState(initialActivities);
@@ -24,6 +22,8 @@ function AdminManagementPage() {
   const [currentUser, setCurrentUser] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterRole, setFilterRole] = useState("All");
+  const [stats, setStats] = useState({ totalUsers: 0, totalMentors: 0, totalMentees: 0, totalReviews: 0, totalChats: 0 });
+  const [feedbacks, setFeedbacks] = useState([]);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -32,34 +32,23 @@ function AdminManagementPage() {
     status: "Active",
   });
 
-  // Simulate real-time activity updates
   useEffect(() => {
-    const interval = setInterval(() => {
-      const actions = [
-        "Viewed dashboard",
-        "Sent a message",
-        "Updated profile",
-        "Joined a chat room",
-        "Completed a session",
-      ];
-      const types = ["view", "message", "profile", "chat", "session"];
-      const randomAction = actions[Math.floor(Math.random() * actions.length)];
-      const randomType = types[Math.floor(Math.random() * types.length)];
-      const randomUser = users[Math.floor(Math.random() * users.length)];
-
-      const newActivity = {
-        id: Date.now(),
-        user: randomUser.name,
-        action: randomAction,
-        timestamp: new Date().toISOString(),
-        type: randomType,
-      };
-
-      setActivities((prev) => [newActivity, ...prev.slice(0, 49)]);
-    }, 10000);
-
-    return () => clearInterval(interval);
-  }, [users]);
+    const load = async () => {
+      try {
+        const [u, s, r] = await Promise.all([
+          adminAPI.users(),
+          adminAPI.stats(),
+          adminAPI.reviews(),
+        ]);
+        setUsers(u);
+        setStats(s);
+        setFeedbacks(r.reviews || []);
+      } catch (err) {
+        console.error("Failed to load admin data", err);
+      }
+    };
+    load();
+  }, []);
 
   const handleOpenModal = (type, user = null) => {
     setModalType(type);
@@ -105,10 +94,14 @@ function AdminManagementPage() {
     handleCloseModal();
   };
 
-  const handleDelete = (id) => {
-    if (window.confirm("Are you sure you want to delete this user?")) {
-      setUsers(users.filter((u) => u.id !== id));
-      alert("🗑️ User deleted successfully!");
+  const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this user?")) return;
+    try {
+      await adminAPI.deleteUser(id);
+      const updated = await adminAPI.users();
+      setUsers(updated);
+    } catch (err) {
+      alert("Failed to delete user");
     }
   };
 
@@ -133,17 +126,17 @@ function AdminManagementPage() {
   };
 
   const filteredUsers = users.filter((user) => {
-    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          user.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = filterRole === "All" || user.role === filterRole;
+    const matchesSearch = (user.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (user.email || "").toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesRole = filterRole === "All" || (user.role || "") === filterRole;
     return matchesSearch && matchesRole;
   });
 
-  const stats = {
-    totalUsers: users.length,
-    activeUsers: users.filter((u) => u.status === "Active").length,
-    mentors: users.filter((u) => u.role === "Mentor").length,
-    students: users.filter((u) => u.role === "Student").length,
+  const derived = {
+    totalUsers: stats.totalUsers,
+    activeUsers: users.length,
+    mentors: stats.totalMentors,
+    students: stats.totalMentees,
   };
 
   return (
@@ -159,7 +152,7 @@ function AdminManagementPage() {
 
       {/* Navigation Tabs */}
       <div style={{ display: "flex", gap: "8px", marginBottom: "24px", borderBottom: "2px solid #e2e8f0" }}>
-        {["dashboard", "users", "activities"].map((tab) => (
+        {["dashboard", "users", "feedbacks", "activities"].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -185,10 +178,10 @@ function AdminManagementPage() {
         <div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "20px", marginBottom: "32px" }}>
             {[
-              { label: "Total Users", value: stats.totalUsers, icon: "👥", color: "#667eea" },
-              { label: "Active Users", value: stats.activeUsers, icon: "✅", color: "#10b981" },
-              { label: "Mentors", value: stats.mentors, icon: "🎓", color: "#f59e0b" },
-              { label: "Students", value: stats.students, icon: "📚", color: "#ec4899" },
+              { label: "Total Users", value: derived.totalUsers, icon: "👥", color: "#667eea" },
+              { label: "Active Users", value: derived.activeUsers, icon: "✅", color: "#10b981" },
+              { label: "Mentors", value: derived.mentors, icon: "🎓", color: "#f59e0b" },
+              { label: "Students", value: derived.students, icon: "📚", color: "#ec4899" },
             ].map((stat) => (
               <div
                 key={stat.label}
@@ -308,7 +301,7 @@ function AdminManagementPage() {
               </thead>
               <tbody>
                 {filteredUsers.map((user) => (
-                  <tr key={user.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                  <tr key={user._id} style={{ borderBottom: "1px solid #f1f5f9" }}>
                     <td style={{ padding: "16px" }}>{user.name}</td>
                     <td style={{ padding: "16px", color: "#64748b" }}>{user.email}</td>
                     <td style={{ padding: "16px" }}>
@@ -318,31 +311,17 @@ function AdminManagementPage() {
                           borderRadius: "12px",
                           fontSize: "12px",
                           fontWeight: "600",
-                          background: user.role === "Mentor" ? "#fef3c7" : "#dbeafe",
-                          color: user.role === "Mentor" ? "#92400e" : "#1e40af",
+                          background: (user.role || "") === "mentor" ? "#fef3c7" : (user.role === "admin" ? "#fde68a" : "#dbeafe"),
+                          color: (user.role || "") === "mentor" ? "#92400e" : (user.role === "admin" ? "#92400e" : "#1e40af"),
                         }}
                       >
-                        {user.role}
+                        {(user.role || "").charAt(0).toUpperCase() + (user.role || "").slice(1)}
                       </span>
                     </td>
-                    <td style={{ padding: "16px" }}>
-                      <span
-                        style={{
-                          padding: "4px 12px",
-                          borderRadius: "12px",
-                          fontSize: "12px",
-                          fontWeight: "600",
-                          background: user.status === "Active" ? "#d1fae5" : "#fee2e2",
-                          color: user.status === "Active" ? "#065f46" : "#991b1b",
-                        }}
-                      >
-                        {user.status}
-                      </span>
-                    </td>
-                    <td style={{ padding: "16px", color: "#64748b" }}>{user.joinDate}</td>
+                    <td style={{ padding: "16px", color: "#64748b" }}>{new Date(user.createdAt).toISOString().split("T")[0]}</td>
                     <td style={{ padding: "16px", textAlign: "center" }}>
                       <button
-                        onClick={() => handleOpenModal("edit", user)}
+                        onClick={() => navigate(`/profile/${user._id}`)}
                         style={{
                           padding: "6px 12px",
                           background: "#667eea",
@@ -354,10 +333,10 @@ function AdminManagementPage() {
                           marginRight: "8px",
                         }}
                       >
-                        ✏️ Edit
+                        👁️ View Profile
                       </button>
                       <button
-                        onClick={() => handleDelete(user.id)}
+                        onClick={() => handleDelete(user._id)}
                         style={{
                           padding: "6px 12px",
                           background: "#ef4444",
@@ -375,6 +354,26 @@ function AdminManagementPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {activeTab === "feedbacks" && (
+        <div style={{ background: "white", padding: "24px", borderRadius: "12px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}>
+          <h2 style={{ fontSize: "20px", fontWeight: "700", marginBottom: "16px" }}>Feedbacks</h2>
+          <div style={{ maxHeight: "600px", overflowY: "auto" }}>
+            {feedbacks.map((f) => (
+              <div key={f._id} style={{ display: "flex", gap: "12px", padding: "12px", borderBottom: "1px solid #f1f5f9" }}>
+                <div style={{ fontWeight: 600 }}>{f.rating}★</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: "14px" }}>{f.comment || "No comment"}</div>
+                  <div style={{ fontSize: "12px", color: "#64748b" }}>
+                    From {(f.menteeId?.name || "")} to {(f.mentorId?.name || "")} on {new Date(f.timestamp).toLocaleDateString()}
+                  </div>
+                </div>
+              </div>
+            ))}
+            {feedbacks.length === 0 && <div style={{ color: "#64748b" }}>No feedbacks yet</div>}
           </div>
         </div>
       )}

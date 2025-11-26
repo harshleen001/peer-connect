@@ -1,7 +1,9 @@
 node_modules/
 dist/
 coverage/
-.vite/
+tmp/
+uploads/
+logs/
 *.log
 .env
 .env.*

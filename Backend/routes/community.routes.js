@@ -4,6 +4,8 @@ import { auth } from "../middleware/auth.js";
 import Community from "../models/Community.js";
 import CommunityPost from "../models/CommunityPost.js";
 import CommunityReaction from "../models/CommunityReaction.js";
+import Notification from "../models/Notification.js";
+import User from "../models/User.js";
 
 const router = express.Router();
 
@@ -48,6 +50,17 @@ router.post("/:id/join", auth(), async (req, res) => {
 
     community.members.push(req.user.id);
     await community.save();
+
+    // 🔔 Notify mentor about new member join (with count)
+    const mentee = await User.findById(req.user.id).select("name");
+    const memberCount = community.members.length;
+    await Notification.create({
+      userId: community.mentorId,
+      message: `${mentee?.name || "A mentee"} joined ${community.name}. Total members: ${memberCount}`,
+      type: "community",
+      link: `/community/${community._id}`,
+      data: { communityId: community._id.toString(), memberCount },
+    });
 
     res.json({ message: "Joined community successfully", community });
   } catch (err) {

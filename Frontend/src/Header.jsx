@@ -5,12 +5,62 @@ export default function Header({ notificationCount = 3 }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const menuRef = useRef(null);
 
   const isActive = (path) => location.pathname === path;
 
+  // Check login and admin status
+  useEffect(() => {
+    const checkStatus = () => {
+      const loginStatus = localStorage.getItem("isLoggedIn");
+      const adminStatus = localStorage.getItem("isAdmin");
+      setIsLoggedIn(loginStatus === "true");
+      setIsAdmin(adminStatus === "true");
+    };
+
+    checkStatus();
+    window.addEventListener("storage", checkStatus);
+    const interval = setInterval(checkStatus, 1000);
+    window.addEventListener("auth-updated", checkStatus);
+
+    return () => {
+      window.removeEventListener("storage", checkStatus);
+      window.removeEventListener("auth-updated", checkStatus);
+      clearInterval(interval);
+    };
+  }, []);
+
   const handleNavClick = (path) => {
     navigate(path);
+  };
+
+  const handleAdminAccess = () => {
+    setShowMoreMenu(false);
+    if (isAdmin) {
+      navigate("/admin");
+    } else {
+      navigate("/admin-login");
+    }
+  };
+
+  const handleLogout = () => {
+    setShowMoreMenu(false);
+    if (window.confirm("Are you sure you want to logout?")) {
+      localStorage.removeItem("isLoggedIn");
+      localStorage.removeItem("isAdmin");
+      localStorage.removeItem("role");
+      localStorage.removeItem("user");
+      localStorage.removeItem("userName");
+      localStorage.removeItem("token");
+      setIsLoggedIn(false);
+      setIsAdmin(false);
+      alert("Logged out successfully! 👋");
+      // notify auth change
+      window.dispatchEvent(new Event("auth-updated"));
+      navigate("/login");
+    }
   };
 
   const handleMoreOptionClick = (option) => {
@@ -133,13 +183,16 @@ export default function Header({ notificationCount = 3 }) {
             alignItems: "center",
           }}
         >
-          {[
-            { path: "/", label: "Dashboard" },
-            { path: "/messages", label: "Messages" },
-            { path: "/leaderboard", label: "🏆 Leaderboard" },
-            { path: "/notifications", label: "🔔 Notifications" },
-            { path: "/profile", label: "Profile" },
-          ].map((item) => (
+          {(
+            [
+              ...(isAdmin ? [] : [{ path: "/", label: "Dashboard" }]),
+              ...(isAdmin ? [] : [{ path: "/messages", label: "Messages" }]),
+              { path: "/leaderboard", label: "🏆 Leaderboard" },
+              { path: "/notifications", label: "🔔 Notifications" },
+              { path: "/profile", label: "Profile" },
+              ...(isAdmin ? [{ path: "/admin", label: "🛡️ Admin Panel" }] : []),
+            ]
+          ).map((item) => (
             <button
               key={item.path}
               onClick={() => handleNavClick(item.path)}
@@ -162,12 +215,12 @@ export default function Header({ notificationCount = 3 }) {
                 whiteSpace: "nowrap",
               }}
             >
-              {item.label}
-              {item.path === "/notifications" && notificationCount > 0 && (
-                <span
-                  style={{
-                    background: "#ff4757",
-                    color: "white",
+                {item.label}
+                {item.path === "/notifications" && notificationCount > 0 && (
+                  <span
+                    style={{
+                      background: "#ff4757",
+                      color: "white",
                     borderRadius: "50%",
                     width: "22px",
                     height: "22px",
@@ -246,11 +299,15 @@ export default function Header({ notificationCount = 3 }) {
                 }}
               >
                 {[
-                  { label: "⚙️ Settings", action: "settings" },
-                  { label: "📊 Report History", action: "report-history" },
+                  ...(isLoggedIn
+                    ? [
+                        { label: "⚙️ Settings", action: "settings" },
+                        { label: "📊 Report History", action: "report-history" },
+                      ]
+                    : []),
                   { label: "❓ Help", action: "help" },
                   { label: "💬 Send Feedback", action: "feedback" },
-                  { label: "🔐 Login", action: "login" },
+                  ...(!isLoggedIn ? [{ label: "🔐 Login", action: "login" }] : []),
                 ].map((opt) => (
                   <button
                     key={opt.action}
@@ -279,6 +336,69 @@ export default function Header({ notificationCount = 3 }) {
                     {opt.label}
                   </button>
                 ))}
+                
+                {!isAdmin && isLoggedIn && (
+                  <button
+                    onClick={() => {
+                      setShowMoreMenu(false);
+                      navigate("/admin-login");
+                    }}
+                    style={{
+                      width: "100%",
+                      padding: "0.75rem 1rem",
+                      background: "transparent",
+                      border: "none",
+                      textAlign: "left",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.75rem",
+                      color: "#667eea",
+                      fontSize: "0.95rem",
+                      fontWeight: "500",
+                      transition: "background-color 0.2s ease",
+                    }}
+                    onMouseOver={(e) =>
+                      (e.target.style.backgroundColor = "#f8f9fa")
+                    }
+                    onMouseOut={(e) =>
+                      (e.target.style.backgroundColor = "transparent")
+                    }
+                  >
+                    <span>🔐</span>
+                    Admin Login
+                  </button>
+                )}
+
+                {/* Logout */}
+                {isLoggedIn && (
+                  <button
+                    onClick={handleLogout}
+                    style={{
+                      width: "100%",
+                      padding: "0.75rem 1rem",
+                      background: "transparent",
+                      border: "none",
+                      textAlign: "left",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.75rem",
+                      color: "#ff4757",
+                      fontSize: "0.95rem",
+                      fontWeight: "500",
+                      transition: "background-color 0.2s ease",
+                    }}
+                    onMouseOver={(e) =>
+                      (e.target.style.backgroundColor = "#fee2e2")
+                    }
+                    onMouseOut={(e) =>
+                      (e.target.style.backgroundColor = "transparent")
+                    }
+                  >
+                    <span>🚪</span> Logout
+                  </button>
+                )}
               </div>
             )}
           </div>

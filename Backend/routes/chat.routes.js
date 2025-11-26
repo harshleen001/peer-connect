@@ -3,7 +3,9 @@ import express from "express";
 import Chat from "../models/Chat.js";
 import Request from "../models/Request.js";
 import Notification from "../models/Notification.js";
+import User from "../models/User.js";
 import { auth } from "../middleware/auth.js";
+import { getIO } from "../middleware/socket.js";
 
 const router = express.Router();
 
@@ -74,6 +76,12 @@ router.post("/:chatId/message", auth(), async (req, res) => {
     chat.messages.push(message);
     await chat.save();
 
+    // ✅ Get the last message (the one we just added) with populated senderId
+    const savedChat = await Chat.findById(chat._id)
+      .populate("messages.senderId", "name role")
+      .populate("participants", "name role");
+    const lastMessage = savedChat.messages[savedChat.messages.length - 1];
+
     // ✅ find the receiver (other participant in chat)
     const receiverId = chat.participants.find(
       (p) => p.toString() !== req.user.id
@@ -81,11 +89,35 @@ router.post("/:chatId/message", auth(), async (req, res) => {
 
     // ✅ create notification for the receiver
     if (receiverId) {
+      const sender = await User.findById(req.user.id).select("name");
       await Notification.create({
         userId: receiverId,
-        message: `New message received`,
+        message: `${sender?.name || "Someone"} sent you a message`,
         type: "chat",
-        link: `/chat/${chat._id}`,
+        link: `/messages?chatId=${chat._id}`,
+        data: { chatId: chat._id.toString(), fromName: sender?.name || "" },
+      });
+    }
+
+    // ✅ Emit socket event to all participants in the chat room
+    const io = getIO();
+    if (io) {
+      const roomId = chat._id.toString();
+      // Emit to the chat room
+      io.to(roomId).emit("chatMessage", {
+        chatId: chat._id.toString(),
+        message: {
+          _id: lastMessage._id,
+          senderId: lastMessage.senderId,
+          text: lastMessage.text,
+          timestamp: lastMessage.timestamp,
+          isRead: lastMessage.isRead,
+        },
+        chat: {
+          _id: savedChat._id,
+          participants: savedChat.participants,
+          lastMessage: lastMessage,
+        },
       });
     }
 

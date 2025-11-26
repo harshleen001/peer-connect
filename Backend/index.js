@@ -71,7 +71,7 @@ app.use('/api/poll', pollRoutes);
 app.use("/api/follow", followRoutes);
 
 const server = http.createServer(app);
-import  { setupSocket }  from "./middleware/socket.js";
+import { setupSocket } from "./middleware/socket.js";
 setupSocket(server);
 
 
@@ -84,7 +84,7 @@ app.use(express.json());
 app.use(morgan("dev"));
 
 connectDB().then(() => {
-  app.listen(process.env.PORT, () =>
-    console.log(`🚀 Server running at http://localhost:${process.env.PORT}`)
-  );
+  server.listen(process.env.PORT, () => {
+    console.log(`🚀 Server + Socket running at http://localhost:${process.env.PORT}`);
+  });
 });

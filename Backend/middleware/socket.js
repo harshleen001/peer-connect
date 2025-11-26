@@ -57,16 +57,20 @@ export function setupSocket(server) {
 
         // create notifications for receivers
         if (payload.receivers && Array.isArray(payload.receivers)) {
+          const sender = await User.findById(payload.senderId).select("name");
           for (const rid of payload.receivers) {
-            const notif = new Notification({
+            const notif = await Notification.create({
               userId: rid,
-              type: "message",
-              title: `New message from ${payload.senderId}`,
-              body: payload.text,
-              data: { roomId: payload.roomId, messageId: msg._id },
+              type: "chat",
+              message: `${sender?.name || "Someone"} sent you a message`,
+              link: `/messages?roomId=${payload.roomId}`,
+              data: {
+                roomId: payload.roomId,
+                messageId: msg._id.toString(),
+                fromName: sender?.name || "",
+              },
             });
-            await notif.save();
-            io.to(rid).emit("receiveNotification", notif);
+            io.to(String(rid)).emit("receiveNotification", notif);
           }
         }
       } catch (err) {
@@ -168,4 +172,8 @@ export function setupSocket(server) {
 }
 
 
-export default { setupSocket, getIO: () => io };
+export function getIO() {
+  return io;
+}
+
+export default { setupSocket, getIO };

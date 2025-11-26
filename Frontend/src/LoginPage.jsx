@@ -39,12 +39,16 @@ function LoginPage() {
       localStorage.setItem("user", JSON.stringify(me || res.user));
       const role = ((me?.role ?? res.user.role) || "").trim().toLowerCase();
       localStorage.setItem("role", role);
+      localStorage.setItem("isAdmin", role === "admin" ? "true" : "false");
 
       // Notify app to re-render dashboard decision immediately
       window.dispatchEvent(new Event("auth-updated"));
 
-      // Redirect
-      navigate("/");
+      if (role === "admin") {
+        navigate("/admin");
+      } else {
+        navigate("/");
+      }
     } catch (err) {
       alert("❌ Login failed: " + err.message);
     }
@@ -310,30 +314,6 @@ function LoginPage() {
           </div>
         </form>
       </div>
-
-      {/* Global Logout Button */}
-      {(isLoggedIn || localStorage.getItem("isLoggedIn") === "true") && (
-        <button
-          onClick={handleLogout}
-          style={{
-            position: "fixed",
-            bottom: "24px",
-            right: "24px",
-            backgroundColor: "#ef4444",
-            color: "white",
-            border: "none",
-            borderRadius: "50px",
-            padding: "14px 24px",
-            fontSize: "14px",
-            fontWeight: "600",
-            cursor: "pointer",
-            boxShadow: "0 8px 25px rgba(239, 68, 68, 0.3)",
-            zIndex: 1000,
-          }}
-        >
-          🚪 Logout
-        </button>
-      )}
     </div>
   );
 }
