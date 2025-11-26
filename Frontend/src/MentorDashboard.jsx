@@ -9,6 +9,7 @@ import {
   leaderboardAPI,
   communityReactionsAPI 
 } from "./api";
+import { getSocket } from "./socket";
 import "./App.css";
 
 export default function MentorDashboard() {
@@ -151,6 +152,72 @@ export default function MentorDashboard() {
     fetchDashboardData();
   }, []);
 
+  // Live update reactions via socket
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+    const onUpdate = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const feedData = await feedAPI.my().catch(() => ({ posts: [] }));
+        const posts = feedData?.posts || [];
+        let totalReactions = 0;
+        for (const post of posts) {
+          if (post.reactionSummary) {
+            totalReactions += (post.reactionSummary.thumbsUp || 0) + (post.reactionSummary.heart || 0) + (post.reactionSummary.fire || 0);
+          }
+        }
+        const totalPosts = posts.filter(p => String(p.mentorId?._id || p.mentorId) === String(user?._id)).length;
+        setStats(prev => ({ ...prev, totalReactions, totalPosts }));
+
+        const activities = [];
+        for (const post of posts.slice(0, 10)) {
+          if (post.reactionSummary) {
+            const count = (post.reactionSummary.thumbsUp || 0) + (post.reactionSummary.heart || 0) + (post.reactionSummary.fire || 0);
+            if (count > 0) {
+              activities.push({
+                type: "reaction",
+                user: post.mentorId?.name || "Mentor",
+                community: post.communityId?.name || "Community",
+                content: post.content?.substring(0, 50) + (post.content?.length > 50 ? "..." : ""),
+                count,
+                postId: post._id,
+                communityId: post.communityId?._id,
+              });
+            }
+          }
+          if (post.hasPoll) {
+            activities.push({
+              type: "poll",
+              user: post.mentorId?.name || "Mentor",
+              community: post.communityId?.name || "Community",
+              content: post.content?.substring(0, 50) + (post.content?.length > 50 ? "..." : ""),
+              postId: post._id,
+              communityId: post.communityId?._id,
+            });
+          }
+          if (post.content && !post.hasPoll && !post.reactionSummary) {
+            activities.push({
+              type: "post",
+              user: post.mentorId?.name || "Mentor",
+              community: post.communityId?.name || "Community",
+              content: post.content?.substring(0, 50) + (post.content?.length > 50 ? "..." : ""),
+              postId: post._id,
+              communityId: post.communityId?._id,
+            });
+          }
+        }
+        setActivityStream(activities.slice(0, 5));
+      } catch (err) {
+        console.error("Socket update failed", err);
+      }
+    };
+    socket.on("communityPostReactionUpdated", onUpdate);
+    return () => {
+      socket.off("communityPostReactionUpdated", onUpdate);
+    };
+  }, [user]);
+
   const handleAccept = async (reqId) => {
     try {
       await api(`/requests/${reqId}`, "PATCH", { status: "accepted" });
@@ -284,12 +351,24 @@ export default function MentorDashboard() {
           ].map((stat) => (
             <div
               key={stat.label}
+              onClick={() => {
+                if (stat.label === "Total Mentees") {
+                  navigate("/profile?open=connections");
+                } else if (stat.label === "Communities") {
+                  navigate("/community-chats");
+                } else if (stat.label === "Reactions") {
+                  navigate("/community-chats");
+                } else if (stat.label === "Total Posts") {
+                  navigate("/community-chats");
+                }
+              }}
               style={{
                 background: "white",
                 borderRadius: "12px",
                 padding: "20px",
                 boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                textAlign: "center"
+                textAlign: "center",
+                cursor: "pointer"
               }}
             >
               <div style={{ fontSize: "32px", marginBottom: "8px" }}>{stat.icon}</div>

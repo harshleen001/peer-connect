@@ -156,6 +156,10 @@ export const adminAPI = {
   verifyMentor: (id) => api(`/admin/mentors/${id}/verify`, "PATCH"),
   stats: () => api(`/admin/stats`, "GET"),
   reviews: () => api(`/admin/reviews`, "GET"),
+  communities: () => api(`/admin/communities`, "GET"),
+  posts: () => api(`/admin/posts`, "GET"),
+  requests: () => api(`/admin/requests`, "GET"),
+  connections: () => api(`/admin/connections`, "GET"),
 };
 
 

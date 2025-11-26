@@ -1,5 +1,6 @@
 // Frontend/src/ProfilePage.jsx
 import React, { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { api, requestAPI } from "./api"; // your api wrapper (uses VITE_API_BASE_URL)
 
 
@@ -285,6 +286,7 @@ export default function ProfilePage() {
   };
   const [connections, setConnections] = useState([]);
   const [showConnections, setShowConnections] = useState(false);
+  const location = useLocation();
 
   const fetchConnections = async () => {
     try {
@@ -299,6 +301,14 @@ export default function ProfilePage() {
   useEffect(() => {
     if (showConnections) fetchConnections();
   }, [showConnections]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const open = params.get("open");
+    if (open === "connections") {
+      setShowConnections(true);
+    }
+  }, [location.search]);
 
   useEffect(() => {
     if (user) {
