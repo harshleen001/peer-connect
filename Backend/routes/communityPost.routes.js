@@ -8,7 +8,6 @@ import CommunityPost from "../models/CommunityPost.js";
 import Notification from "../models/Notification.js";
 import User from "../models/User.js";
 import { getReactionSummary, getReactionSummaries } from "./communityReaction.routes.js";
-import { getIO } from "../middleware/socket.js";
 
 const router = express.Router();
 
@@ -62,14 +61,6 @@ router.post("/:communityId/posts", auth(), async (req, res) => {
 
     if (notifications.length > 0) {
       await Notification.insertMany(notifications);
-    }
-
-    const io = getIO();
-    if (io) {
-      io.emit("communityPostCreated", {
-        postId: post._id.toString(),
-        communityId: String(post.communityId),
-      });
     }
 
     res.status(201).json(post);
@@ -160,13 +151,6 @@ router.delete("/:communityId/posts/:postId", auth(), async (req, res) => {
     }
 
     await CommunityPost.findByIdAndDelete(req.params.postId);
-    const io = getIO();
-    if (io) {
-      io.emit("communityPostDeleted", {
-        postId: req.params.postId,
-        communityId: String(post.communityId),
-      });
-    }
     res.json({ message: "Post deleted successfully" });
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
@@ -208,14 +192,7 @@ router.get("/feed/my", auth(), async (req, res) => {
       .populate("communityId", "name")
       .sort({ createdAt: -1 });
 
-    const postIds = posts.map((p) => p._id);
-    const reactionSummaries = await getReactionSummaries(postIds);
-    const postsWithCounts = posts.map((post) => {
-      const s = reactionSummaries.get(post._id.toString()) || { heart: 0, thumbsUp: 0, fire: 0 };
-      return { ...post.toObject(), reactionSummary: s };
-    });
-
-    res.json({ count: postsWithCounts.length, posts: postsWithCounts });
+    res.json({ count: posts.length, posts });
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
   }

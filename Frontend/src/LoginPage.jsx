@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "./api"; // ✅ Import api.js wrapper
+import { initSocket } from "./socket";
 
 function LoginPage() {
   const [email, setEmail] = useState("");
@@ -43,6 +44,11 @@ function LoginPage() {
 
       // Notify app to re-render dashboard decision immediately
       window.dispatchEvent(new Event("auth-updated"));
+
+      try {
+        const uid = (me?._id || res.user.id || res.user._id);
+        if (uid) initSocket(uid);
+      } catch {}
 
       if (role === "admin") {
         navigate("/admin");

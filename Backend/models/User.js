@@ -26,10 +26,10 @@ const userSchema = new mongoose.Schema(
     phone: { type: String }, // ✅ new
     address: { type: String }, // ✅ new
 
-  // Professional Info
-  resumeLink: { type: String }, // ✅ new
-  profilePicture: { type: String }, // ✅ new (can store Cloudinary URL)
-  bio: { type: String }, // ✅ new (short about section)
+    // Professional Info
+    resumeLink: { type: String }, // ✅ new
+    profilePicture: { type: String }, // ✅ new (can store Cloudinary URL)
+    bio: { type: String }, // ✅ new (short about section)
 
     // Mentor Stats
     skills: [String],
@@ -37,16 +37,10 @@ const userSchema = new mongoose.Schema(
     achievements: String,
     rating: { type: Number, default: 0 },
     menteesHelped: { type: Number, default: 0 },
-  verifiedMentor: { type: Boolean, default: false },
-  // inside your userSchema fields:
-  followers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
-  following: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
-
-  learningObjectives: [{ type: String }],
-  availability: [{ type: String }],
-  experienceLevel: { type: String },
-  careerGoalsTags: [{ type: String }],
-  preferredMentorshipStyle: { type: String },
+    verifiedMentor: { type: Boolean, default: false },
+    // inside your userSchema fields:
+    followers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    following: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
 
   },
 

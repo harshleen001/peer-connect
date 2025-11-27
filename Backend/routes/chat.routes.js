@@ -88,9 +88,10 @@ router.post("/:chatId/message", auth(), async (req, res) => {
     );
 
     // ✅ create notification for the receiver
+    let receiverNotif = null;
     if (receiverId) {
       const sender = await User.findById(req.user.id).select("name");
-      await Notification.create({
+      receiverNotif = await Notification.create({
         userId: receiverId,
         message: `${sender?.name || "Someone"} sent you a message`,
         type: "chat",
@@ -119,6 +120,9 @@ router.post("/:chatId/message", auth(), async (req, res) => {
           lastMessage: lastMessage,
         },
       });
+      if (receiverId && receiverNotif) {
+        io.to(String(receiverId)).emit("receiveNotification", receiverNotif);
+      }
     }
 
     res.json({ message: "Message sent & receiver notified", chat });

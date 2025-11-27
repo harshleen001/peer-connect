@@ -2,7 +2,6 @@
 import express from "express";
 import { auth } from "../middleware/auth.js";
 import Community from "../models/Community.js";
-import { getIO } from "../middleware/socket.js";
 import CommunityPost from "../models/CommunityPost.js";
 import CommunityReaction from "../models/CommunityReaction.js";
 import Notification from "../models/Notification.js";
@@ -27,10 +26,6 @@ router.post("/", auth(), async (req, res) => {
       members: [req.user.id] // creator auto-joins
     });
 
-    const io = getIO();
-    if (io) {
-      io.emit("communityCreated", { communityId: community._id.toString() });
-    }
     res.status(201).json(community);
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
@@ -67,14 +62,6 @@ router.post("/:id/join", auth(), async (req, res) => {
       data: { communityId: community._id.toString(), memberCount },
     });
 
-    const io = getIO();
-    if (io) {
-      io.emit("communityMemberJoined", {
-        communityId: community._id.toString(),
-        memberId: req.user.id,
-        memberCount,
-      });
-    }
     res.json({ message: "Joined community successfully", community });
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });

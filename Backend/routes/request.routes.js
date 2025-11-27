@@ -21,7 +21,7 @@ router.post("/:mentorId", auth(), async (req, res) => {
     const existing = await Request.findOne({
       menteeId: req.user.id,
       mentorId,
-      status: "pending" || "accepted",
+      status: { $in: ["pending", "accepted"] },
     });
 
     if (existing) {
@@ -35,7 +35,7 @@ router.post("/:mentorId", auth(), async (req, res) => {
 
     // 🔔 Notification to mentor (include mentee name & request id)
     const mentee = await User.findById(req.user.id).select("name");
-    await Notification.create({
+    const mentorNotif = await Notification.create({
       userId: mentorId,
       message: `New mentorship request from ${mentee?.name || "a mentee"}`,
       type: "request",
@@ -51,6 +51,7 @@ router.post("/:mentorId", auth(), async (req, res) => {
         mentorId: mentorId,
         status: "pending",
       });
+      io.to(String(mentorId)).emit("receiveNotification", mentorNotif);
     }
 
     res.json(request);

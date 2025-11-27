@@ -1,8 +1,4 @@
-const API_BASE = (() => {
-  const env = import.meta.env.VITE_API_BASE_URL;
-  const base = env && env.trim().length ? env.trim() : "http://localhost:5000/api";
-  return base.replace(/\/+$/, "");
-})();
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
 // src/api.js
 
@@ -15,12 +11,11 @@ export const api = async (endpoint, method = "GET", data = null) => {
   const options = { method, headers };
   if (data) options.body = JSON.stringify(data);
 
-  const url = `${API_BASE}${endpoint}`;
-  const res = await fetch(url, options);
+  const res = await fetch(`${API_BASE}${endpoint}`, options);
 
   if (!res.ok) {
     const msg = await res.text();
-    console.error("API error:", res.status, method, url, msg);
+    console.error("API error:", res.status, msg);
     throw new Error(`API error: ${res.status}`);
   }
 
@@ -161,10 +156,6 @@ export const adminAPI = {
   verifyMentor: (id) => api(`/admin/mentors/${id}/verify`, "PATCH"),
   stats: () => api(`/admin/stats`, "GET"),
   reviews: () => api(`/admin/reviews`, "GET"),
-  communities: () => api(`/admin/communities`, "GET"),
-  posts: () => api(`/admin/posts`, "GET"),
-  requests: () => api(`/admin/requests`, "GET"),
-  connections: () => api(`/admin/connections`, "GET"),
 };
 
 

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { adminAPI } from "./api";
-import { getSocket } from "./socket";
 
 // Initial mock data
 const initialUsers = [];
@@ -25,10 +24,6 @@ function AdminManagementPage() {
   const [filterRole, setFilterRole] = useState("All");
   const [stats, setStats] = useState({ totalUsers: 0, totalMentors: 0, totalMentees: 0, totalReviews: 0, totalChats: 0 });
   const [feedbacks, setFeedbacks] = useState([]);
-  const [communities, setCommunities] = useState([]);
-  const [posts, setPosts] = useState([]);
-  const [requests, setRequests] = useState([]);
-  const [connections, setConnections] = useState([]);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -54,124 +49,6 @@ function AdminManagementPage() {
     };
     load();
   }, []);
-
-  const refreshStats = async () => {
-    try {
-      const s = await adminAPI.stats();
-      setStats(s);
-    } catch (err) {
-      console.error("Failed to refresh stats", err);
-    }
-  };
-
-  const refreshTab = async (tab) => {
-    try {
-      const t = tab || activeTab;
-      if (t === "communities") {
-        const res = await adminAPI.communities();
-        setCommunities(res.communities || []);
-      } else if (t === "posts") {
-        const res = await adminAPI.posts();
-        setPosts(res.posts || []);
-      } else if (t === "requests") {
-        const res = await adminAPI.requests();
-        setRequests(res.requests || []);
-      } else if (t === "connections") {
-        const res = await adminAPI.connections();
-        setConnections(res.connections || []);
-      } else if (t === "users") {
-        const u = await adminAPI.users();
-        setUsers(u);
-      }
-    } catch (err) {
-      console.error("Failed to refresh tab", err);
-    }
-  };
-
-  useEffect(() => {
-    const run = async () => {
-      try {
-        if (activeTab === "communities") {
-          const res = await adminAPI.communities();
-          setCommunities(res.communities || []);
-        } else if (activeTab === "posts") {
-          const res = await adminAPI.posts();
-          setPosts(res.posts || []);
-        } else if (activeTab === "requests") {
-          const res = await adminAPI.requests();
-          setRequests(res.requests || []);
-        } else if (activeTab === "connections") {
-          const res = await adminAPI.connections();
-          setConnections(res.connections || []);
-        }
-      } catch (err) {
-        console.error("Failed to load tab data", err);
-      }
-    };
-    run();
-  }, [activeTab]);
-
-  // Live activity from sockets
-  useEffect(() => {
-    const socket = getSocket();
-    if (!socket) return;
-    const add = (entry) => setActivities((prev) => [{ id: Date.now(), ...entry, timestamp: new Date().toISOString() }, ...prev].slice(0, 100));
-    const onRequestSent = ({ mentorId }) => {
-      add({ user: `Mentee`, action: `Sent mentorship request`, type: "mentorship" });
-      refreshStats();
-      if (activeTab === "requests") refreshTab("requests");
-    };
-    const onRequestStatusChanged = ({ status }) => {
-      add({ user: `Mentor`, action: `Request ${status}`, type: "mentorship" });
-      refreshStats();
-      if (activeTab === "requests" || activeTab === "connections") {
-        refreshTab("requests");
-        refreshTab("connections");
-      }
-    };
-    const onReactionUpdated = () => {
-      add({ user: `Community`, action: "Post reactions updated", type: "chat" });
-      refreshStats();
-      if (activeTab === "posts") refreshTab("posts");
-    };
-    const onPostCreated = () => {
-      add({ user: `Mentor`, action: "Community post created", type: "chat" });
-      refreshStats();
-      if (activeTab === "posts") refreshTab("posts");
-    };
-    const onPostDeleted = () => {
-      add({ user: `Mentor`, action: "Community post deleted", type: "chat" });
-      refreshStats();
-      if (activeTab === "posts") refreshTab("posts");
-    };
-    const onCommunityCreated = () => {
-      add({ user: `Mentor`, action: "Community created", type: "chat" });
-      refreshStats();
-      if (activeTab === "communities") refreshTab("communities");
-    };
-    const onCommunityMemberJoined = () => {
-      add({ user: `Mentee`, action: "Joined a community", type: "chat" });
-      refreshStats();
-      if (activeTab === "communities") refreshTab("communities");
-    };
-
-    socket.on("requestSent", onRequestSent);
-    socket.on("requestStatusChanged", onRequestStatusChanged);
-    socket.on("communityPostReactionUpdated", onReactionUpdated);
-    socket.on("communityPostCreated", onPostCreated);
-    socket.on("communityPostDeleted", onPostDeleted);
-    socket.on("communityCreated", onCommunityCreated);
-    socket.on("communityMemberJoined", onCommunityMemberJoined);
-    return () => {
-      socket.off("requestSent", onRequestSent);
-      socket.off("requestStatusChanged", onRequestStatusChanged);
-      socket.off("communityPostReactionUpdated", onReactionUpdated);
-      socket.off("communityPostCreated", onPostCreated);
-      socket.off("communityPostDeleted", onPostDeleted);
-      socket.off("communityCreated", onCommunityCreated);
-      socket.off("communityMemberJoined", onCommunityMemberJoined);
-    };
-  }, [activeTab]);
 
   const handleOpenModal = (type, user = null) => {
     setModalType(type);
@@ -251,9 +128,7 @@ function AdminManagementPage() {
   const filteredUsers = users.filter((user) => {
     const matchesSearch = (user.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
                           (user.email || "").toLowerCase().includes(searchTerm.toLowerCase());
-    const roleStr = (user.role || "").toLowerCase();
-    const filterStr = (filterRole || "").toLowerCase();
-    const matchesRole = filterRole === "All" || roleStr === filterStr;
+    const matchesRole = filterRole === "All" || (user.role || "") === filterRole;
     return matchesSearch && matchesRole;
   });
 
@@ -262,11 +137,6 @@ function AdminManagementPage() {
     activeUsers: users.length,
     mentors: stats.totalMentors,
     students: stats.totalMentees,
-    communities: stats.totalCommunities,
-    posts: stats.totalPosts,
-    reactions: stats.totalReactions,
-    requests: stats.totalRequests,
-    connections: stats.totalConnections,
   };
 
   return (
@@ -282,7 +152,7 @@ function AdminManagementPage() {
 
       {/* Navigation Tabs */}
       <div style={{ display: "flex", gap: "8px", marginBottom: "24px", borderBottom: "2px solid #e2e8f0" }}>
-        {["dashboard", "users", "communities", "posts", "requests", "connections", "feedbacks", "activities"].map((tab) => (
+        {["dashboard", "users", "feedbacks", "activities"].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -312,11 +182,6 @@ function AdminManagementPage() {
               { label: "Active Users", value: derived.activeUsers, icon: "✅", color: "#10b981" },
               { label: "Mentors", value: derived.mentors, icon: "🎓", color: "#f59e0b" },
               { label: "Students", value: derived.students, icon: "📚", color: "#ec4899" },
-              { label: "Communities", value: derived.communities, icon: "👨‍👩‍👧‍👦", color: "#06b6d4" },
-              { label: "Posts", value: derived.posts, icon: "📝", color: "#8b5cf6" },
-              { label: "Reactions", value: derived.reactions, icon: "❤️", color: "#ef4444" },
-              { label: "Requests", value: derived.requests, icon: "📨", color: "#f59e0b" },
-              { label: "Connections", value: derived.connections, icon: "🔗", color: "#10b981" },
             ].map((stat) => (
               <div
                 key={stat.label}
@@ -325,21 +190,6 @@ function AdminManagementPage() {
                   padding: "24px",
                   borderRadius: "12px",
                   boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                }}
-                onClick={() => {
-                  const map = {
-                    Communities: "communities",
-                    Posts: "posts",
-                    Reactions: "posts",
-                    Requests: "requests",
-                    Connections: "connections",
-                    Mentors: "users",
-                    Students: "users",
-                    "Total Users": "users",
-                    "Active Users": "users",
-                  };
-                  const next = map[stat.label] || "dashboard";
-                  setActiveTab(next);
                 }}
               >
                 <div style={{ fontSize: "32px", marginBottom: "8px" }}>{stat.icon}</div>
@@ -413,7 +263,7 @@ function AdminManagementPage() {
               }}
             >
               <option>All</option>
-              <option>Mentee</option>
+              <option>Student</option>
               <option>Mentor</option>
               <option>Admin</option>
             </select>
@@ -500,116 +350,6 @@ function AdminManagementPage() {
                         🗑️ Delete
                       </button>
                     </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {activeTab === "communities" && (
-        <div>
-          <div style={{ background: "white", borderRadius: "12px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)", overflow: "hidden" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr style={{ background: "#f8fafc", borderBottom: "2px solid #e2e8f0" }}>
-                  <th style={{ padding: "16px", textAlign: "left", fontWeight: "600" }}>Name</th>
-                  <th style={{ padding: "16px", textAlign: "left", fontWeight: "600" }}>Mentor</th>
-                  <th style={{ padding: "16px", textAlign: "left", fontWeight: "600" }}>Members</th>
-                  <th style={{ padding: "16px", textAlign: "center", fontWeight: "600" }}>Open</th>
-                </tr>
-              </thead>
-              <tbody>
-                {communities.map((c) => (
-                  <tr key={c._id} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                    <td style={{ padding: "16px" }}>{c.name}</td>
-                    <td style={{ padding: "16px" }}>{c.mentorId?.name || "-"}</td>
-                    <td style={{ padding: "16px" }}>{(c.members || []).length}</td>
-                    <td style={{ padding: "16px", textAlign: "center" }}>
-                      <button onClick={() => navigate(`/community-chats/${c._id}`)} style={{ padding: "6px 12px", borderRadius: 6, border: "none", background: "#667eea", color: "white", cursor: "pointer", fontSize: 12 }}>Open</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {activeTab === "posts" && (
-        <div>
-          <div style={{ background: "white", borderRadius: "12px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)", overflow: "hidden" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr style={{ background: "#f8fafc", borderBottom: "2px solid #e2e8f0" }}>
-                  <th style={{ padding: "16px", textAlign: "left", fontWeight: "600" }}>Community</th>
-                  <th style={{ padding: "16px", textAlign: "left", fontWeight: "600" }}>Mentor</th>
-                  <th style={{ padding: "16px", textAlign: "left", fontWeight: "600" }}>Reactions</th>
-                  <th style={{ padding: "16px", textAlign: "center", fontWeight: "600" }}>Open</th>
-                </tr>
-              </thead>
-              <tbody>
-                {posts.map((p) => (
-                  <tr key={p._id} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                    <td style={{ padding: "16px" }}>{p.communityId?.name || "-"}</td>
-                    <td style={{ padding: "16px" }}>{p.mentorId?.name || "-"}</td>
-                    <td style={{ padding: "16px" }}>
-                      {(p.reactionSummary?.thumbsUp || 0) + (p.reactionSummary?.heart || 0) + (p.reactionSummary?.fire || 0)}
-                    </td>
-                    <td style={{ padding: "16px", textAlign: "center" }}>
-                      <button onClick={() => navigate(`/community-chats/${p.communityId?._id || p.communityId}/posts/${p._id}`)} style={{ padding: "6px 12px", borderRadius: 6, border: "none", background: "#10b981", color: "white", cursor: "pointer", fontSize: 12 }}>View</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {activeTab === "requests" && (
-        <div>
-          <div style={{ background: "white", borderRadius: "12px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)", overflow: "hidden" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr style={{ background: "#f8fafc", borderBottom: "2px solid #e2e8f0" }}>
-                  <th style={{ padding: "16px", textAlign: "left", fontWeight: "600" }}>Mentee</th>
-                  <th style={{ padding: "16px", textAlign: "left", fontWeight: "600" }}>Mentor</th>
-                  <th style={{ padding: "16px", textAlign: "left", fontWeight: "600" }}>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {requests.map((r) => (
-                  <tr key={r._id} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                    <td style={{ padding: "16px" }}>{r.menteeId?.name || "-"}</td>
-                    <td style={{ padding: "16px" }}>{r.mentorId?.name || "-"}</td>
-                    <td style={{ padding: "16px" }}>{r.status}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {activeTab === "connections" && (
-        <div>
-          <div style={{ background: "white", borderRadius: "12px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)", overflow: "hidden" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr style={{ background: "#f8fafc", borderBottom: "2px solid #e2e8f0" }}>
-                  <th style={{ padding: "16px", textAlign: "left", fontWeight: "600" }}>Mentee</th>
-                  <th style={{ padding: "16px", textAlign: "left", fontWeight: "600" }}>Mentor</th>
-                  <th style={{ padding: "16px", textAlign: "left", fontWeight: "600" }}>Created</th>
-                </tr>
-              </thead>
-              <tbody>
-                {connections.map((c) => (
-                  <tr key={c._id} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                    <td style={{ padding: "16px" }}>{c.menteeId?.name || "-"}</td>
-                    <td style={{ padding: "16px" }}>{c.mentorId?.name || "-"}</td>
-                    <td style={{ padding: "16px" }}>{new Date(c.createdAt).toLocaleDateString()}</td>
                   </tr>
                 ))}
               </tbody>

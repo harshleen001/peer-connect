@@ -31,12 +31,6 @@ function cosineSimilarity(vecA, vecB) {
   return dotProduct / (magnitudeA * magnitudeB);
 }
 
-function normalizeTags(arr) {
-  return (arr || [])
-    .filter((v) => typeof v === "string")
-    .map((v) => v.trim().toLowerCase());
-}
-
 /**
  * Calculate interaction score between mentee and mentor
  * @param {string} menteeId - Mentee user ID
@@ -192,8 +186,8 @@ router.get("/", async (req, res) => {
       mentors.map(async (mentor) => {
         // 1. Cosine Similarity (Skills/Interests matching) - Weight: 30%
         const similarity = cosineSimilarity(
-          normalizeTags(mentee.interests || []),
-          normalizeTags(mentor.skills || [])
+          mentee.interests || [],
+          mentor.skills || []
         );
 
         // Skip mentors with very low similarity
@@ -254,10 +248,9 @@ router.get("/", async (req, res) => {
           hasExistingRequest,
           
           // Matching skills
-          matchingSkills: (mentee.interests || []).filter((interest) => {
-            const ms = new Set(normalizeTags(mentor.skills || []));
-            return ms.has(String(interest).trim().toLowerCase());
-          })
+          matchingSkills: (mentee.interests || []).filter(interest =>
+            (mentor.skills || []).includes(interest)
+          )
         };
       })
     );

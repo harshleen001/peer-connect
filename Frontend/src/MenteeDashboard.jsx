@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { requestAPI, mentorsAPI, recommendationsAPI, communitiesAPI, feedAPI, chatsAPI, communityReactionsAPI } from "./api";
+import { requestAPI, mentorsAPI, recommendationsAPI, communitiesAPI, feedAPI, chatsAPI } from "./api";
 import { getSocket } from "./socket";
 import "./App.css";
 
@@ -81,7 +81,6 @@ export default function MenteeDashboard() {
           author: p.mentorId?.name || "Mentor",
           community: p.communityId?.name || "Community",
           content: p.content,
-          reactionSummary: p.reactionSummary || { heart: 0, thumbsUp: 0, fire: 0 },
         }));
         setFeedItems(posts);
       } catch (err) {
@@ -90,33 +89,6 @@ export default function MenteeDashboard() {
     };
     loadCommunitiesAndFeed();
   }, []);
-
-  useEffect(() => {
-    const socket = getSocket();
-    if (!socket) return;
-    const onUpdate = (payload) => {
-      setFeedItems((items) =>
-        items.map((it) =>
-          String(it.id) === String(payload.postId)
-            ? { ...it, reactionSummary: payload.reactionSummary }
-            : it
-        )
-      );
-    };
-    socket.on("communityPostReactionUpdated", onUpdate);
-    return () => {
-      socket.off("communityPostReactionUpdated", onUpdate);
-    };
-  }, []);
-
-  const handleReactFeed = async (postId, reaction) => {
-    try {
-      await communityReactionsAPI.react(postId, reaction);
-    } catch (err) {
-      console.error(err);
-      alert("Failed to react");
-    }
-  };
 
   // Actions: create, join, leave
   const handleCreateCommunity = async (e) => {
@@ -526,19 +498,6 @@ export default function MenteeDashboard() {
                   <span style={{ fontSize: 12, color: "#9ca3af" }}>{f.community}</span>
                 </div>
                 <div style={{ color: "#374151" }}>{f.content}</div>
-                {role === "mentee" && (
-                  <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                    <button onClick={() => handleReactFeed(f.id, "❤️")} style={{ border: "1px solid #e2e8f0", borderRadius: 6, padding: "4px 8px", background: "white", cursor: "pointer" }}>
-                      ❤️ {f.reactionSummary?.heart || 0}
-                    </button>
-                    <button onClick={() => handleReactFeed(f.id, "👍")} style={{ border: "1px solid #e2e8f0", borderRadius: 6, padding: "4px 8px", background: "white", cursor: "pointer" }}>
-                      👍 {f.reactionSummary?.thumbsUp || 0}
-                    </button>
-                    <button onClick={() => handleReactFeed(f.id, "🔥")} style={{ border: "1px solid #e2e8f0", borderRadius: 6, padding: "4px 8px", background: "white", cursor: "pointer" }}>
-                      🔥 {f.reactionSummary?.fire || 0}
-                    </button>
-                  </div>
-                )}
               </div>
             ))}
             {feedItems.length === 0 && <div style={{ color: "#64748b" }}>Join communities to see posts.</div>}

@@ -22,6 +22,7 @@ import ProtectedRoute from "./ProtectedRoute.jsx";
 import MenteeDashboard from "./MenteeDashboard.jsx";
 import MentorDashboard from "./MentorDashboard.jsx";
 import { notificationsAPI } from "./api";
+import { initSocket, getSocket } from "./socket";
 import RecommendedMentorsPage from "./RecommendedMentorsPage.jsx";
 import HelpPage from "./HelpPage.jsx";
 import SettingsPage from "./SettingsPage.jsx";
@@ -203,6 +204,19 @@ function App() {
   }, []);
 
   useEffect(() => {
+    try {
+      const user = JSON.parse(localStorage.getItem("user") || "null");
+      const token = localStorage.getItem("token");
+      if (token && user?._id) {
+        const socket = initSocket(user._id);
+        if (socket) {
+          const handleReceiveNotification = () => {
+            window.dispatchEvent(new Event("notifications-updated"));
+          };
+          socket.on("receiveNotification", handleReceiveNotification);
+        }
+      }
+    } catch {}
     const refreshPending = async () => {
       const token = localStorage.getItem("token");
       if (!token) {
@@ -220,6 +234,8 @@ function App() {
     refreshPending();
     window.addEventListener("notifications-updated", refreshPending);
     return () => {
+      const socket = getSocket();
+      if (socket) socket.off("receiveNotification");
       window.removeEventListener("notifications-updated", refreshPending);
     };
   }, [authVersion]);
