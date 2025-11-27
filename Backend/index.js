@@ -30,7 +30,7 @@ import fs from "fs";
 
 const app = express();
 
-app.use(cors({ origin: process.env.CORS_ORIGIN, credentials: true }));
+app.use(cors({ origin: process.env.CORS_ORIGIN || "*", credentials: true }));
 app.use(express.json());
 app.use(morgan("dev"));
 
@@ -79,7 +79,7 @@ setupSocket(server);
 const uploadDir = path.resolve("uploads");
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
 app.use("/api/uploads", express.static(uploadDir));
-app.use(cors({ origin: process.env.CORS_ORIGIN, credentials: true }));
+app.use(cors({ origin: process.env.CORS_ORIGIN || "*", credentials: true }));
 app.use(express.json());
 app.use(morgan("dev"));
 

@@ -134,14 +134,42 @@ function AdminManagementPage() {
       refreshStats();
       if (activeTab === "posts") refreshTab("posts");
     };
+    const onPostCreated = () => {
+      add({ user: `Mentor`, action: "Community post created", type: "chat" });
+      refreshStats();
+      if (activeTab === "posts") refreshTab("posts");
+    };
+    const onPostDeleted = () => {
+      add({ user: `Mentor`, action: "Community post deleted", type: "chat" });
+      refreshStats();
+      if (activeTab === "posts") refreshTab("posts");
+    };
+    const onCommunityCreated = () => {
+      add({ user: `Mentor`, action: "Community created", type: "chat" });
+      refreshStats();
+      if (activeTab === "communities") refreshTab("communities");
+    };
+    const onCommunityMemberJoined = () => {
+      add({ user: `Mentee`, action: "Joined a community", type: "chat" });
+      refreshStats();
+      if (activeTab === "communities") refreshTab("communities");
+    };
 
     socket.on("requestSent", onRequestSent);
     socket.on("requestStatusChanged", onRequestStatusChanged);
     socket.on("communityPostReactionUpdated", onReactionUpdated);
+    socket.on("communityPostCreated", onPostCreated);
+    socket.on("communityPostDeleted", onPostDeleted);
+    socket.on("communityCreated", onCommunityCreated);
+    socket.on("communityMemberJoined", onCommunityMemberJoined);
     return () => {
       socket.off("requestSent", onRequestSent);
       socket.off("requestStatusChanged", onRequestStatusChanged);
       socket.off("communityPostReactionUpdated", onReactionUpdated);
+      socket.off("communityPostCreated", onPostCreated);
+      socket.off("communityPostDeleted", onPostDeleted);
+      socket.off("communityCreated", onCommunityCreated);
+      socket.off("communityMemberJoined", onCommunityMemberJoined);
     };
   }, [activeTab]);
 

@@ -1,7 +1,11 @@
 import { io } from "socket.io-client";
 
-// point to your backend origin
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+// point to your backend origin (strip trailing /api if present)
+const API_BASE_URL = (() => {
+  const env = import.meta.env.VITE_API_BASE_URL;
+  const base = env && env.trim().length ? env.trim() : "http://localhost:3000/api";
+  return base.replace(/\/api\/?$/, "");
+})();
 
 let socket = null;
 

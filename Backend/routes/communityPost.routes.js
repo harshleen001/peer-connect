@@ -8,6 +8,7 @@ import CommunityPost from "../models/CommunityPost.js";
 import Notification from "../models/Notification.js";
 import User from "../models/User.js";
 import { getReactionSummary, getReactionSummaries } from "./communityReaction.routes.js";
+import { getIO } from "../middleware/socket.js";
 
 const router = express.Router();
 
@@ -61,6 +62,14 @@ router.post("/:communityId/posts", auth(), async (req, res) => {
 
     if (notifications.length > 0) {
       await Notification.insertMany(notifications);
+    }
+
+    const io = getIO();
+    if (io) {
+      io.emit("communityPostCreated", {
+        postId: post._id.toString(),
+        communityId: String(post.communityId),
+      });
     }
 
     res.status(201).json(post);
@@ -151,6 +160,13 @@ router.delete("/:communityId/posts/:postId", auth(), async (req, res) => {
     }
 
     await CommunityPost.findByIdAndDelete(req.params.postId);
+    const io = getIO();
+    if (io) {
+      io.emit("communityPostDeleted", {
+        postId: req.params.postId,
+        communityId: String(post.communityId),
+      });
+    }
     res.json({ message: "Post deleted successfully" });
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });

@@ -1,4 +1,8 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL;
+const API_BASE = (() => {
+  const env = import.meta.env.VITE_API_BASE_URL;
+  const base = env && env.trim().length ? env.trim() : "http://localhost:5000/api";
+  return base.replace(/\/+$/, "");
+})();
 
 // src/api.js
 
@@ -11,11 +15,12 @@ export const api = async (endpoint, method = "GET", data = null) => {
   const options = { method, headers };
   if (data) options.body = JSON.stringify(data);
 
-  const res = await fetch(`${API_BASE}${endpoint}`, options);
+  const url = `${API_BASE}${endpoint}`;
+  const res = await fetch(url, options);
 
   if (!res.ok) {
     const msg = await res.text();
-    console.error("API error:", res.status, msg);
+    console.error("API error:", res.status, method, url, msg);
     throw new Error(`API error: ${res.status}`);
   }
 
