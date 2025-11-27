@@ -1,4 +1,6 @@
-// App.jsx - Fixed to prevent duplicate headers
+// App.jsx - ONLY changes made are to socket init so it also handles real-time chats.
+// Everything else is kept exactly as in your code.
+
 import React, { useState, useEffect } from "react";
 import "./App.css";
 import Header from "./Header.jsx";
@@ -27,7 +29,6 @@ import RecommendedMentorsPage from "./RecommendedMentorsPage.jsx";
 import HelpPage from "./HelpPage.jsx";
 import SettingsPage from "./SettingsPage.jsx";
 import ReportHistoryPage from "./ReportHistoryPage.jsx";
-
 
 // Protected Route Component for Admin
 function ProtectedAdminRoute({ children }) {
@@ -214,9 +215,22 @@ function App() {
             window.dispatchEvent(new Event("notifications-updated"));
           };
           socket.on("receiveNotification", handleReceiveNotification);
+
+          // ✅ EXTRA: global listener to broadcast new chat messages (for real-time chats)
+          const handleReceiveMessage = () => {
+            window.dispatchEvent(new Event("chat-updated"));
+          };
+          socket.on("receiveMessage", handleReceiveMessage);
+
+          // cleanup only these listeners here
+          return () => {
+            socket.off("receiveNotification", handleReceiveNotification);
+            socket.off("receiveMessage", handleReceiveMessage);
+          };
         }
       }
     } catch {}
+
     const refreshPending = async () => {
       const token = localStorage.getItem("token");
       if (!token) {
@@ -235,7 +249,10 @@ function App() {
     window.addEventListener("notifications-updated", refreshPending);
     return () => {
       const socket = getSocket();
-      if (socket) socket.off("receiveNotification");
+      if (socket) {
+        socket.off("receiveNotification");
+        socket.off("receiveMessage");
+      }
       window.removeEventListener("notifications-updated", refreshPending);
     };
   }, [authVersion]);
@@ -263,7 +280,6 @@ function App() {
               </ProtectedRoute>
             }
           />
-
 
           {/* Communication */}
           <Route
@@ -381,10 +397,7 @@ function App() {
           <Route path="/admin-login" element={<AdminLoginPage />} />
 
           {/* ✅ ADDED - Student Registration Route */}
-          <Route
-            path="/register"
-            element={<StudentRegistrationPage />}
-          />
+          <Route path="/register" element={<StudentRegistrationPage />} />
 
           {/* Info Pages */}
           <Route
