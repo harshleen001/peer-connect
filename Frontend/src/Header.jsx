@@ -162,7 +162,7 @@ export default function Header({ notificationCount = 3 }) {
               fontSize: "1.2rem",
             }}
           >
-            M
+            P
           </span>
           <span
             style={{
@@ -171,7 +171,7 @@ export default function Header({ notificationCount = 3 }) {
               letterSpacing: "1px",
             }}
           >
-            MENTORSHIP PLATFORM
+            Peer Connect
           </span>
         </div>
 
