@@ -13,7 +13,7 @@ export function initSocket(userId) {
     const token = localStorage.getItem("token");
     socket = io(API_BASE_URL, {
       auth: token ? { token } : undefined,
-      transports: ["websocket"],
+      transports: ["websocket", "polling"],
       autoConnect: false,
       path: "/socket.io",
       withCredentials: true,

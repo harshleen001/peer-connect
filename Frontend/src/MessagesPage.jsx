@@ -98,19 +98,21 @@ const MessagesPage = () => {
     if (!socket && currentUser?._id) {
       socket = initSocket(currentUser._id);
     }
-    if (!socket) return;
+    if (!socket || !selectedChat?.id) return;
 
-    // Leave previous chat room
-    if (currentChatIdRef.current) {
-      socket.emit("leaveRoom", currentChatIdRef.current);
-    }
-
-    // Join new chat room
-    if (selectedChat?.id) {
+    const join = () => {
+      if (currentChatIdRef.current) {
+        socket.emit("leaveRoom", currentChatIdRef.current);
+      }
       currentChatIdRef.current = selectedChat.id;
       socket.emit("joinRoom", selectedChat.id);
+    };
+
+    if (!socket.connected) {
+      socket.once("connect", join);
+      socket.connect();
     } else {
-      currentChatIdRef.current = null;
+      join();
     }
 
     // Listen for real-time messages
@@ -192,6 +194,7 @@ const MessagesPage = () => {
     return () => {
       socket.off("chatMessage", handleChatMessage);
       socket.off("receiveMessage", handleReceiveMessage);
+      socket.off("connect", join);
       if (currentChatIdRef.current) {
         socket.emit("leaveRoom", currentChatIdRef.current);
       }
