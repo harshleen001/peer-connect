@@ -14,7 +14,12 @@ export function initSocket(userId) {
     socket = io(API_BASE_URL, {
       auth: token ? { token } : undefined,
       transports: ["websocket"],
-      autoConnect: false, // we'll connect manually
+      autoConnect: false,
+      path: "/socket.io",
+      withCredentials: true,
+      reconnection: true,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 1000,
     });
 
     socket.on("connect", () => {

@@ -170,10 +170,28 @@ const MessagesPage = () => {
       }));
     };
 
+    const handleReceiveMessage = (msg) => {
+      const roomId = msg.roomId;
+      if (roomId === selectedChat?.id) {
+        const mapped = {
+          id: msg._id,
+          text: msg.text,
+          sender: (msg.senderId?._id || msg.senderId) === currentUser._id ? 'me' : 'them',
+          time: msg.createdAt ? new Date(msg.createdAt).toLocaleString() : ''
+        };
+        setMessages(prev => ({
+          ...prev,
+          [roomId]: [...(prev[roomId] || []), mapped]
+        }));
+      }
+    };
+
     socket.on("chatMessage", handleChatMessage);
+    socket.on("receiveMessage", handleReceiveMessage);
 
     return () => {
       socket.off("chatMessage", handleChatMessage);
+      socket.off("receiveMessage", handleReceiveMessage);
       if (currentChatIdRef.current) {
         socket.emit("leaveRoom", currentChatIdRef.current);
       }
