@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import { chatsAPI } from './api';
-import { getSocket } from './socket';
+import { getSocket, initSocket } from './socket';
 
 const MessagesPage = () => {
   const [selectedChat, setSelectedChat] = useState(null);
@@ -94,7 +94,10 @@ const MessagesPage = () => {
 
   // ✅ Socket: Join/leave chat rooms and listen for real-time messages
   useEffect(() => {
-    const socket = getSocket();
+    let socket = getSocket();
+    if (!socket && currentUser?._id) {
+      socket = initSocket(currentUser._id);
+    }
     if (!socket) return;
 
     // Leave previous chat room
