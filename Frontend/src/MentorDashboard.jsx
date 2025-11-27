@@ -1,5 +1,6 @@
 // src/MentorDashboard.jsx
 import React, { useEffect, useState } from "react";
+import { getSocket, initSocket } from "./socket";
 import { useNavigate } from "react-router-dom";
 import { 
   api, 
@@ -149,6 +150,29 @@ export default function MentorDashboard() {
     };
 
     fetchDashboardData();
+  }, []);
+
+  // Presence updates in real-time
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const me = (() => { try { return JSON.parse(localStorage.getItem("user")||"null"); } catch { return null; }})();
+    let socket = getSocket();
+    if (!socket && me?._id) socket = initSocket(me._id);
+    if (!socket) return;
+
+    const handlePresence = ({ userId, isOnline }) => {
+      setConnections(prev => prev.map(c => {
+        if (String(c.menteeId?._id || c.menteeId) === String(userId)) {
+          return {
+            ...c,
+            menteeId: { ...(c.menteeId || {}), isOnline }
+          };
+        }
+        return c;
+      }));
+    };
+    socket.on("presenceUpdate", handlePresence);
+    return () => { socket.off("presenceUpdate", handlePresence); };
   }, []);
 
   const handleAccept = async (reqId) => {
@@ -400,7 +424,7 @@ export default function MentorDashboard() {
             <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
               {connections.slice(0, 5).map((conn) => {
                 const mentee = conn.menteeId;
-                const isOnline = Math.random() > 0.5; // Simulate online status
+                const isOnline = Boolean(mentee?.isOnline);
                 return (
                   <div
                     key={conn._id}
@@ -450,7 +474,7 @@ export default function MentorDashboard() {
                         {mentee?.name || "Unknown"}
                       </div>
                       <div style={{ fontSize: "12px", color: isOnline ? "#10b981" : "#6b7280" }}>
-                        {isOnline ? "Online (Chat)" : "Offline (Chat)"}
+                        {isOnline ? "Online" : "Offline"}
                       </div>
                     </div>
                   </div>

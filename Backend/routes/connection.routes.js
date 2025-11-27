@@ -11,8 +11,8 @@ router.get("/", auth(), async (req, res) => {
     else filter.menteeId = req.user.id;
 
     const connections = await UserConnection.find(filter)
-      .populate("mentorId", "name email skills rating profilePicture")
-      .populate("menteeId", "name email year interests profilePicture");
+      .populate("mentorId", "name email skills rating profilePicture isOnline lastSeenAt")
+      .populate("menteeId", "name email year interests profilePicture isOnline lastSeenAt");
 
     res.json(connections);
   } catch (err) {

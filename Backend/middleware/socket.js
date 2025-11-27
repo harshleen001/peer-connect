@@ -19,11 +19,23 @@ export function setupSocket(server) {
       if (!userId) return;
       socket.join(userId); // personal room for notifications
       try {
-        await User.findByIdAndUpdate(
+        const user = await User.findByIdAndUpdate(
           userId,
           { isOnline: true, socketId: socket.id },
-          { upsert: true, new: true }
-        );
+          { new: true }
+        ).select("_id role");
+
+        if (user) {
+          // Notify connections about presence
+          const UserConnection = (await import("../models/UserConnection.js")).default;
+          if (user.role === "mentee") {
+            const cons = await UserConnection.find({ menteeId: user._id }).select("mentorId");
+            for (const c of cons) io.to(String(c.mentorId)).emit("presenceUpdate", { userId: String(user._id), isOnline: true });
+          } else if (user.role === "mentor") {
+            const cons = await UserConnection.find({ mentorId: user._id }).select("menteeId");
+            for (const c of cons) io.to(String(c.menteeId)).emit("presenceUpdate", { userId: String(user._id), isOnline: true });
+          }
+        }
       } catch (err) {
         console.error("User update error:", err);
       }
@@ -160,10 +172,22 @@ export function setupSocket(server) {
     socket.on("disconnect", async () => {
       console.log("Socket disconnected:", socket.id);
       try {
-        await User.findOneAndUpdate(
+        const user = await User.findOneAndUpdate(
           { socketId: socket.id },
-          { isOnline: false, socketId: null }
-        );
+          { isOnline: false, socketId: null, lastSeenAt: new Date() },
+          { new: true }
+        ).select("_id role");
+
+        if (user) {
+          const UserConnection = (await import("../models/UserConnection.js")).default;
+          if (user.role === "mentee") {
+            const cons = await UserConnection.find({ menteeId: user._id }).select("mentorId");
+            for (const c of cons) io.to(String(c.mentorId)).emit("presenceUpdate", { userId: String(user._id), isOnline: false });
+          } else if (user.role === "mentor") {
+            const cons = await UserConnection.find({ mentorId: user._id }).select("menteeId");
+            for (const c of cons) io.to(String(c.menteeId)).emit("presenceUpdate", { userId: String(user._id), isOnline: false });
+          }
+        }
       } catch (err) {
         console.error("disconnect update error:", err);
       }
