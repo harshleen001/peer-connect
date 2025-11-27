@@ -32,6 +32,10 @@ export default function AdminLoginPage() {
   return (
     <div style={{ minHeight: "100vh", display: "flex", justifyContent: "center", alignItems: "center", background: "linear-gradient(135deg, #667eea, #764ba2)", padding: "20px" }}>
       <div style={{ background: "white", padding: "40px", borderRadius: "16px", width: "100%", maxWidth: "420px" }}>
+        <div style={{ marginBottom: "16px", display: "flex", alignItems: "center", gap: "10px" }}>
+          <div style={{ width: "36px", height: "36px", background: "linear-gradient(135deg, #667eea, #764ba2)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: 700 }}>P</div>
+          <div style={{ fontSize: "18px", fontWeight: 700 }}>Peer Connect</div>
+        </div>
         <h1 style={{ margin: 0, fontSize: "24px", fontWeight: 700 }}>Admin Login</h1>
         <p style={{ marginTop: "6px", color: "#64748b" }}>Sign in with admin credentials</p>
         {error && <div style={{ color: "#ef4444", marginTop: "10px" }}>{error}</div>}

@@ -94,6 +94,10 @@ function LoginPage() {
           backdropFilter: "blur(10px)",
         }}
       >
+        <div style={{ marginBottom: "24px", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px" }}>
+          <div style={{ width: "40px", height: "40px", background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: "700" }}>P</div>
+          <div style={{ fontSize: "20px", fontWeight: "700", letterSpacing: "0.5px", color: "#1a202c" }}>Peer Connect</div>
+        </div>
         {/* Header */}
         <div style={{ marginBottom: "32px" }}>
           <h1

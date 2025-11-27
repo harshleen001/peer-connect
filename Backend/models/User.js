@@ -39,13 +39,18 @@ const userSchema = new mongoose.Schema(
     menteesHelped: { type: Number, default: 0 },
     verifiedMentor: { type: Boolean, default: false },
     // inside your userSchema fields:
-  followers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
-  following: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    followers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    following: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
 
     // Presence
     isOnline: { type: Boolean, default: false },
     socketId: { type: String, default: null },
     lastSeenAt: { type: Date },
+
+    careerGoals: [{ type: String }],
+    learningObjectives: [{ type: String }],
+    mentorAbout: { type: String },
+    certificates: [{ type: String }],
 
   },
 

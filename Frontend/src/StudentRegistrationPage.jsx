@@ -52,14 +52,13 @@ function StudentRegistrationPage() {
     fieldOfStudy: "",
     yearOfStudy: "",
     areasOfInterest: [],
-    careerGoals: "",
-    learningObjectives: "",
+    careerGoals: [],
+    learningObjectives: [],
     currentSkills: [],
     experience: "",
     projects: "",
     preferredMentorshipStyle: "",
-    availability: [],
-    timeZone: "",
+    certificates: [],
     mentorAbout: "", // Extra field for mentor-only
   });
 
@@ -67,23 +66,40 @@ function StudentRegistrationPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const areasOfInterestOptions = [
-    "Web Development", "Mobile Development", "Data Science", "Machine Learning", "AI",
-    "Backend Development", "Frontend Development", "DevOps", "Cybersecurity", "Cloud Computing",
-    "UI/UX Design", "Product Management", "Business Strategy",
+    "Software Engineering", "Data Science", "Machine Learning", "AI", "NLP", "Computer Vision",
+    "Web Development", "Frontend", "Backend", "Full Stack", "Mobile iOS", "Mobile Android",
+    "DevOps", "Cloud", "SRE", "Cybersecurity", "Blockchain", "AR/VR",
+    "UI/UX", "Product Management", "Project Management", "Business Analysis",
+    "Sales", "Marketing", "Growth", "Finance", "Accounting", "Operations",
+    "Entrepreneurship", "Startups", "Strategy", "Research", "Academia",
   ];
   const skillOptions = [
-    "JavaScript", "Python", "Java", "React", "Node.js", "SQL", "Git",
-    "HTML/CSS", "TypeScript", "MongoDB", "AWS", "Docker",
-  ];
-  const availabilityOptions = [
-    "Weekday Mornings", "Weekday Afternoons", "Weekday Evenings",
-    "Weekend Mornings", "Weekend Afternoons", "Weekend Evenings",
+    "JS", "JavaScript", "TS", "TypeScript", "Python", "Java", "C++", "C#", "Go", "Rust",
+    "React", "Vue", "Angular", "Svelte", "Next.js", "Nuxt",
+    "Node.js", "Express", "NestJS", "Django", "Flask", "FastAPI", "Spring",
+    "SQL", "PostgreSQL", "MySQL", "MongoDB", "Redis", "Prisma",
+    "AWS", "GCP", "Azure", "Docker", "Kubernetes", "Terraform", "CI/CD",
+    "HTML", "CSS", "Sass", "Tailwind", "Bootstrap",
+    "Figma", "Adobe XD", "Sketch",
+    "Data Analysis", "Statistics", "Pandas", "NumPy", "scikit-learn", "TensorFlow", "PyTorch",
+    "NLP", "CV", "LLMs",
+    "Communication", "Leadership", "Public Speaking", "Negotiation", "Time Management",
   ];
   const mentorshipStyles = [
     "Regular 1-on-1 Sessions", "Group Mentoring", "Flexible / Ad-hoc", "Project-based",
   ];
-  const timeZones = [
-    "IST (UTC+5:30)", "EST (UTC-5)", "PST (UTC-8)", "GMT (UTC+0)", "CET (UTC+1)",
+  const careerGoalsOptions = [
+    "Get Internship", "Land Full-time Role", "Switch Career", "Build Startup", "Graduate Admissions",
+    "Publish Research", "Leadership Track", "Product Manager", "Data Scientist", "Software Engineer",
+    "Cloud/DevOps", "UX Designer", "Entrepreneur",
+  ];
+  const learningObjectivesOptions = [
+    "Master DSA", "System Design", "Algorithms", "Frontend Frameworks", "Backend APIs",
+    "Cloud Fundamentals", "CI/CD", "DevOps Basics", "Database Design", "Security Basics",
+    "Communication Skills", "Leadership", "Presentation Skills",
+  ];
+  const mentorExperienceOptions = [
+    "Industry Professional", "Academic Mentor", "Peer Mentor", "Certified Coach", "Technical Lead",
   ];
 
   const nameInputRef = useRef(null);
@@ -156,8 +172,8 @@ function StudentRegistrationPage() {
       if (formData.areasOfInterest.length === 0) {
         newErrors.areasOfInterest = "Select at least one area of interest";
       }
-      if (!formData.careerGoals.trim()) newErrors.careerGoals = "Career goals are required";
-      if (role === "mentor" && !formData.mentorAbout.trim()) {
+      if (formData.careerGoals.length === 0) newErrors.careerGoals = "Select at least one goal";
+      if (role === "mentor" && !formData.mentorAbout) {
         newErrors.mentorAbout = "Please describe your mentoring background";
       }
     }
@@ -190,13 +206,17 @@ function StudentRegistrationPage() {
     year: formData.yearOfStudy || "Other",
     branch: formData.fieldOfStudy,
     phone: formData.phone,
-    bio: formData.careerGoals,
+    bio: "",
     skills: formData.currentSkills,
     interests: formData.areasOfInterest,
     achievements: formData.projects,
     address: formData.address || "",
     resumeLink: formData.resumeLink || "",
     profilePicture: formData.profilePicture || "",
+    careerGoals: formData.careerGoals,
+    learningObjectives: formData.learningObjectives,
+    mentorAbout: role === "mentor" ? formData.mentorAbout : "",
+    certificates: formData.certificates,
   };
 
   try {
@@ -572,31 +592,11 @@ function StudentRegistrationPage() {
               }}>
                 Interests & Goals
               </h2>
-              <MultiSelectChips
-                label="Areas of Interest"
-                options={areasOfInterestOptions}
-                field="areasOfInterest"
-                required
-              />
-              <TextArea
-                label="Career Goals"
-                name="careerGoals"
-                required
-                placeholder="What are your career aspirations? What do you want to achieve?"
-              />
-              <TextArea
-                label="Learning Objectives"
-                name="learningObjectives"
-                placeholder="What specific skills or knowledge do you want to gain?"
-              />
-              {/* Mentor-only field */}
+              <MultiSelectChips label="Areas of Interest" options={areasOfInterestOptions} field="areasOfInterest" required />
+              <MultiSelectChips label="Career Goals" options={careerGoalsOptions} field="careerGoals" required />
+              <MultiSelectChips label="Learning Objectives" options={learningObjectivesOptions} field="learningObjectives" />
               {role === "mentor" && (
-                <TextArea
-                  label="About Your Mentoring Experience"
-                  name="mentorAbout"
-                  required
-                  placeholder="Describe your mentoring experience, subjects you can guide, and qualifications."
-                />
+                <SelectField label="About Your Mentoring Experience" name="mentorAbout" options={mentorExperienceOptions} required />
               )}
             </div>
           )}
@@ -609,11 +609,7 @@ function StudentRegistrationPage() {
               }}>
                 Skills & Preferences
               </h2>
-              <MultiSelectChips
-                label="Current Skills"
-                options={skillOptions}
-                field="currentSkills"
-              />
+              <MultiSelectChips label="Current Skills" options={skillOptions} field="currentSkills" />
               <SelectField
                 label="Experience Level"
                 name="experience"
@@ -629,16 +625,28 @@ function StudentRegistrationPage() {
                 name="preferredMentorshipStyle"
                 options={mentorshipStyles}
               />
-              <MultiSelectChips
-                label="Availability"
-                options={availabilityOptions}
-                field="availability"
-              />
-              <SelectField
-                label="Time Zone"
-                name="timeZone"
-                options={timeZones}
-              />
+              <div style={{ marginTop: "12px" }}>
+                <label style={{ display: "block", marginBottom: "8px", color: "#1e293b", fontWeight: "500", fontSize: "14px" }}>Certificates</label>
+                <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png" onChange={async (e) => {
+                  const files = Array.from(e.target.files || []);
+                  const uploaded = [];
+                  for (const file of files) {
+                    try {
+                      const { authAPI } = await import("./api");
+                      const res = await authAPI.upload(file);
+                      uploaded.push(res.url);
+                    } catch {}
+                  }
+                  setFormData((prev) => ({ ...prev, certificates: [...prev.certificates, ...uploaded] }));
+                }} />
+                {formData.certificates.length > 0 && (
+                  <div style={{ marginTop: "8px", fontSize: "12px", color: "#475569" }}>
+                    {formData.certificates.map((u, i) => (
+                      <div key={i}>{u}</div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 

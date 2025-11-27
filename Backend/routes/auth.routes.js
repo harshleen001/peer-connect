@@ -2,6 +2,7 @@
 import { Router } from "express";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
+import { upload } from "../middleware/upload.js";
 
 const router = Router();
 
@@ -34,6 +35,10 @@ router.post("/register", async (req, res) => {
       skills,
       interests,
       achievements,
+      careerGoals,
+      learningObjectives,
+      mentorAbout,
+      certificates,
     } = req.body;
 
     // 🧩 Validation
@@ -63,6 +68,10 @@ router.post("/register", async (req, res) => {
       skills,
       interests,
       achievements,
+      careerGoals,
+      learningObjectives,
+      mentorAbout,
+      certificates,
     });
 
     // 🪪 Generate token
@@ -141,4 +150,15 @@ router.post("/admin/login", async (req, res) => {
   }
 });
 export default router;
+
+// Upload certificate or profile file
+router.post("/upload", upload.single("file"), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+    const fileUrl = `/api/uploads/${req.file.filename}`;
+    res.json({ url: fileUrl });
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+});
  

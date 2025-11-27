@@ -152,6 +152,18 @@ export default function MentorDashboard() {
     fetchDashboardData();
   }, []);
 
+  // Periodically refresh connections to reflect presence from backend
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const list = await requestAPI.connections(token);
+        setConnections(list || []);
+      } catch {}
+    }, 15000);
+    return () => clearInterval(interval);
+  }, []);
+
   // Presence updates in real-time
   useEffect(() => {
     const token = localStorage.getItem("token");

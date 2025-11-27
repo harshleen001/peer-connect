@@ -171,7 +171,7 @@ export default function Header({ notificationCount = 3 }) {
               letterSpacing: "1px",
             }}
           >
-            Peer Connect
+            PEER CONNECT
           </span>
         </div>
 

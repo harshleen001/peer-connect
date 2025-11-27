@@ -182,3 +182,17 @@ export const adminAPI = {
 //   reject: (requestId, token) =>
 //     api(`/requests/${requestId}/reject`, "POST", null, token),
 // };
+export const authAPI = {
+  upload: async (file) => {
+    const token = localStorage.getItem("token");
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch(`${API_BASE}/auth/upload`, {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      body: formData,
+    });
+    if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
+    return res.json();
+  },
+};
